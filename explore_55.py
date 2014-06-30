@@ -5,35 +5,27 @@ import csv
 
 
 #Read in variable description sheet
-#desc = csv.DictReader(open("M:/Senior Living/Data/PSID Data/complete_PSID_desc.csv", 'r'))
 desc = pd.read_csv("M:/Senior Living/Data/PSID Data/complete_PSID_desc.csv")
 
-#Isolate variables for each year
+#Take year, description file, isolate variables in dict 
 years = range(1968, 2012)
-yvars = {}
-for y in years: 
-	temp = (desc[desc['year'] == y])['varlab'].tolist() 
-	yvars[y] = [' '.join(t.split()) for t in temp] 
-#	print test 
-
-
-
-print yvars 
-
-def isolateVars(vardesc, df): 
-
-	return
-
-#Place variables in dict 
-
-#Rewrite variable names to make more sense 
-
-#Replace variable names in each dict
-
-#Merge dict to create a single database of vars
-#Must be consistent across years
+def isolateVars(years, desc): 
+	yvars = {}
+	for y in years: 
+		isoname = desc[desc['year'] == y]['name'].tolist()
+		isolab = desc[desc['year'] == y]['varlab'].tolist() 
+		yvars[y] = dict(zip([' '.join(t.split()) for t in isolab], isoname))  
+	return yvars
+vardict = isolateVars(years, desc)
 
 #Read in main spreadsheet into seperate dfs by year 
+fname = "M:/Senior Living/Data/PSID Data/complete_PSID_data.csv"
+data = pd.read_csv(fname)
+for y in years: 
+	varlist = vardict[y].values()
+	print varlist
+
+
 #Include only people older than 55 
 #Must have consistent variable names 
 
