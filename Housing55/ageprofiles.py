@@ -57,6 +57,20 @@ def share(agegroupdf, var, weight, labelsdict, y):
 			output[str(labelsdict[cat])+'_'+str(y)] = np.true_divide(df[weight].sum(), agegroupdf[weight].sum())
 	return output 
 
+# Keep only head observations in a given dataframe
+def headsOnly(df, seqnum_var, relhead_var): 
+	if (seqnum_var in df.columns) and (relhead_var in df.columns):
+		dfheads = df.loc[(df[seqnum_var] == 1) &  (df[relhead_var] == 10)]
+	else: dfheads = df 
+	return dfheads 
+
+# Keep only those who answered "Yes" to the elderly housing question
+def shousingOnly(df, shousing_var): 
+	if shousing_var in df.columns: 
+		df_shousing = df.loc[(df[shousing_var] == 1)]
+	else: df_shousing = df
+	return df_shousing
+
 
 '''
 Implement above functions 
@@ -84,6 +98,7 @@ pr_seniorh = {t: {} for t in range(0, nbins+1)}
 pr_tseniorh = {t: {} for t in range(0, nbins+1)}
 
 years = range(1991, 1997) + range(1997, 2013, 2)
+#years = [1991]
 for y in years: 
 	print y
 	ydata_fpath = 'M:/Senior Living/Data/PSID Data/all_weights/' + str(y) + '.csv'
@@ -101,15 +116,29 @@ for y in years:
 	agevar = v_years.get_group(y).reset_index().loc[0, 'age']
 	seniorh = v_years.get_group(y).reset_index().loc[0, 'seniorh']
 	t_seniorh = v_years.get_group(y).reset_index().loc[0, 't_seniorh']
+	famwt = v_years.get_group(y).reset_index().loc[0, 'famwt']
+	seqnum = v_years.get_group(y).reset_index().loc[0, 'seqnum']
+	relhead = v_years.get_group(y).reset_index().loc[0, 'relhead']
 
 	# Generate categorical variables by age and attach to df 
 	df_agecat = ageCat(yearlydf, agevar, nbins)
 
 	# Get age profile for each variable of interest 
-	tenure_prof = cohortProfile(df_agecat, htenure, indwt, tenure_dict, y)
-	hstructure_prof = cohortProfile(df_agecat, hstructure, indwt, structure_dict, y)
-	seniorh_prof = cohortProfile(df_agecat, seniorh, indwt, seniorh_dict, y)
-	tseniorh_prof = cohortProfile(df_agecat, t_seniorh, indwt, tseniorh_dict, y)
+#	tenure_prof = cohortProfile(df_agecat, htenure, indwt, tenure_dict, y)
+#	hstructure_prof = cohortProfile(df_agecat, hstructure, indwt, structure_dict, y)
+#	seniorh_prof = cohortProfile(df_agecat, seniorh, indwt, seniorh_dict, y)
+#	tseniorh_prof = cohortProfile(df_agecat, t_seniorh, indwt, tseniorh_dict, y)
+
+	# Keep ONLY the head observations
+	#heads = headsOnly(df_agecat, seqnum, relhead)
+
+	# Keep ONLY those who answered "yes" to the senior housing question
+	shousing = shousingOnly(df_agecat, seniorh)
+
+	tenure_prof = cohortProfile(heads, htenure, famwt, tenure_dict, y)
+	hstructure_prof = cohortProfile(heads, hstructure, famwt, structure_dict, y)
+	seniorh_prof = cohortProfile(heads, seniorh, famwt, seniorh_dict, y)
+	tseniorh_prof = cohortProfile(shousing, t_seniorh, famwt, tseniorh_dict, y)
 
 	for k in tenure_prof:
 		pr_htenure[k].update(tenure_prof[k])
@@ -124,7 +153,7 @@ for y in years:
 		pr_tseniorh[k].update(tseniorh_prof[k])
 
 # Output to csv 
-(DataFrame.from_dict(pr_htenure, orient = 'index')).to_csv('M:/Senior Living/Data/PSID Data/all_weights/Age profiles/htenure50.csv')
-(DataFrame.from_dict(pr_hstructure, orient = 'index')).to_csv('M:/Senior Living/Data/PSID Data/all_weights/Age profiles/hstructure50.csv')
-(DataFrame.from_dict(pr_seniorh, orient = 'index')).to_csv('M:/Senior Living/Data/PSID Data/all_weights/Age profiles/seniorh50.csv')
-(DataFrame.from_dict(pr_tseniorh, orient = 'index')).to_csv('M:/Senior Living/Data/PSID Data/all_weights/Age profiles/type_seniorh50.csv')
+(DataFrame.from_dict(pr_htenure, orient = 'index').sort_index(axis = 1)).to_csv('M:/Senior Living/Data/PSID Data/all_weights/Age profiles/htenure50_heads.csv')
+(DataFrame.from_dict(pr_hstructure, orient = 'index').sort_index(axis = 1)).to_csv('M:/Senior Living/Data/PSID Data/all_weights/Age profiles/hstructure50_heads.csv')
+(DataFrame.from_dict(pr_seniorh, orient = 'index').sort_index(axis = 1)).to_csv('M:/Senior Living/Data/PSID Data/all_weights/Age profiles/seniorh50_heads.csv')
+(DataFrame.from_dict(pr_tseniorh, orient = 'index').sort_index(axis = 1)).to_csv('M:/Senior Living/Data/PSID Data/all_weights/Age profiles/type_seniorh50_heads.csv')
