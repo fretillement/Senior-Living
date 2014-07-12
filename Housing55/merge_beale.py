@@ -1,11 +1,15 @@
+
 import pandas as pd 
 
 # Beale data into df 
 y = 1991 
-beale = pd.read_csv('M:/Senior Living/Data/PSID Data/All_weights/newbeale8511.csv')
+#bealedata = 'M:/Senior Living/Data/PSID Data/All_weights/newbeale8511.csv'
+bealedata = '/Users/ShruthiVenkatesh/Documents/newbeale8511/newbeale8511.csv'
+beale = pd.read_csv(bealedata)
 
 # Yearly data
-fpath = 'M:/Senior Living/Data/PSID Data/All_weights/' + str(y) + '.csv'
+#fpath = 'M:/Senior Living/Data/PSID Data/All_weights/' + str(y) + '.csv'
+fpath = ''
 vfpath = 'M:/Senior Living/Data/PSID Data/All_weights/agecohort_vars.csv'
 famintnum = (pd.read_csv(vfpath).groupby('year').get_group(y)).loc[0, 'famintnum']
 ydf = pd.read_csv(fpath)
