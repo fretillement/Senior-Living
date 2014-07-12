@@ -7,7 +7,9 @@ organized by category and year.
 ''' 
 
 # Read description master file into a dataframe 
-df = pd.read_csv('M:/Senior Living/Data/PSID Data/All_weights/J174506_desc_withyear.csv')
+#fpath = 'M:/Senior Living/Data/PSID Data/All_weights/J174506_desc_withyear.csv'
+fpath = '/Users/ShruthiVenkatesh/Documents/Senior-Living/J175970_desc.csv'
+df = pd.read_csv(fpath)
 
 # Group dataframe by year 
 grouped = df.groupby('year')
@@ -28,7 +30,9 @@ for t in nonempty:
 	info.append([t] + namesdict[t])
 	
 # Output to csv
-output = csv.writer(open('M:/Senior Living/Data/PSID Data/All_weights/J174506_vars.csv', 'w'), lineterminator = '\n')
+#outpath = 'M:/Senior Living/Data/PSID Data/All_weights/J174506_vars.csv'
+outpath = '/Users/ShruthiVenkatesh/Documents/Senior-Living/J175906_vars.csv'
+output = csv.writer(open(outpath, 'w'), lineterminator = '\n')
 for i in info: 
 	output.writerow(i)
 
