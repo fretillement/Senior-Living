@@ -1,8 +1,8 @@
 /*This program should split the full psid dataset J174506.csv into separate csv files by year*/ 
 
 *Insheet full data
-use "M:/Senior Living/Data/PSID Data/All_weights/J174506", clear
-
+*use "M:/Senior Living/Data/PSID Data/All_weights/J174506", clear
+insheet using "/Users/ShruthiVenkatesh/Documents/Senior Living Project/PSID Data/J175970.csv", clear 
 
 *List all variables by year as local 
 local years 1968 1969 1970 1971 1972 1973 1974 1975 1976 1977 1978 1979 1980 1981 1982 1983 1984 1985 1986 1987 1988 1989 1990 1991 1992 1993 1994 1995 1996 1997 1999 2001 2003 2005 2007 2009 2011 
@@ -46,5 +46,6 @@ local 2011 ER52436 ER34103 ER34102 ER30002 ER30001 ER47304 ER47307 ER47308 ER473
 
 *Outsheet each year's variable into a different spreadsheet
 foreach y in `years' { 
-	outsheet ``y'' using "M:/Senior Living/Data/PSID Data/All_weights/`y'.csv", comma replace 
+	*outsheet ``y'' using "M:/Senior Living/Data/PSID Data/All_weights/`y'.csv", comma replace 
+	outsheet ``y'' using "/Users/ShruthiVenkatesh/Documents/Senior Housing Project/PSID Data/`y'.csv", comma replace
 	} 	
