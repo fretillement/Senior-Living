@@ -3,7 +3,7 @@ import numpy as np
 
 class usePSID:
 	'''
-	Common class of functions to manipulate any PSID yearly dataset
+	A class of common functions to manipulate any PSID yearly dataset
 	'''
 	def __init__(self, year, fname, vname): 
 		self.year = year 
@@ -49,44 +49,51 @@ class usePSID:
 		data = self.df 
 		agevar = self.getVarname('age')
 		dfnew = data.loc[(data[agevar] >= lower) &  (data[agevar] <= upper)]
-		agecat = pd.DataFrame(pd.cut(dfnew[agevar], 
+		agecat = pd.cut(dfnew[agevar], 
 			bins = nbins, 
 			labels = False, 
-			retbins = False), 
-			columns = ['agecat'])
-		return pd.merge(dfnew, agecat, 
+			retbins = True) 
+		df_agecat = pd.DataFrame(agecat[0], columns = ['agecat'])
+		return pd.merge(dfnew, df_agecat, 
 			left_index = True, 
 			right_index = True, 
 			right_on = ['agecat'])
-
+		
 	# Compute weighted share of a group by values of varlab
-	def computeShare(self, varlab, wtlab): 
+	def computeShare(self, dfgr, varlab, wtlab): 
 		output = {}
 		data = self.df
 		select_var = self.getVarname(varlab)
 		wt_var = self.getVarname(wtlab)
-		for g in data.groupby(select_var): 
+		for g in dfgr.groupby(select_var): 
 			(group, info) = g
-			output[group] = np.true_divide(info[wt_var].sum(), info[wt_var].sum())
+			output[str(group)+'_'+str(self.year)] = np.true_divide(info[wt_var].sum(), dfgr[wt_var].sum())
 		return output 
 
-'''
+
 # Testing functions in cohortShare 
-fname = 'M:/Senior Living/Data/PSID Data/Years/1991.csv'
-year = 1991
+
+years = [1991, 1992]
+nbins = range(50, 105, 5)
 vname = "M:/Senior Living/Data/PSID Data/Agecohort_vars.csv"
 
-def testSuite(): 
-	obj = cohortShare(year, fname, vname)
-	#obj.getVars()
-	#housing_var = obj.getVarname('htenure')
-	#obj.headsOnly()
-	#print obj.year
-	#obj.select('htenure', 1)
-	#obj.groupAge()
-	#obj.mergeAgeCohort(125, 50, 8)
-	#obj.computeShare('htenure', 'famwt')
+def testSuite(y, nbins): 
+	output = {i:{} for i in range(0, len(nbins)-1)}
+	fname = 'M:/Senior Living/Data/PSID Data/Years/' + str(y) + '.csv'
+	obj = usePSID(y, fname, vname)
+	# Create an age indicator 
+	df_age = obj.mergeAgeCohort(100, 50, nbins)
+	# Group by the age indicator 
+	df_age_gr = df_age.groupby('agecat')
+	# For each group, compute share of housing tenure/ type/ etc
+	for g in df_age_gr: 
+		(agegr, info) = g
+		output[agegr].update(obj.computeShare(info, 'htenure', 'indweight'))
+	return output 
 
 if __name__ == "__main__": 
-	testSuite()
-'''
+	output = {i:{} for i in range(0, len(nbins)-1)}
+	for y in years: 
+		yearlyinfo = testSuite(y, nbins)
+		[output[i].update(yearlyinfo[i]) for i in yearlyinfo]
+	print output 
