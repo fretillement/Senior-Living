@@ -1,24 +1,38 @@
-
+"""
+This code merges the Beale Urbanicity variable (newbeale8511)
+to PSID data by year and output as csv files.
+"""
 import pandas as pd 
 
-# Beale data into df 
-y = 1991 
-bealedata = 'M:/Senior Living/Data/PSID Data/Beale Urbanicity/newbeale8511.csv'
-#bealedata = '/Users/ShruthiVenkatesh/Documents/newbeale8511/newbeale8511.csv'
-beale = pd.read_csv(bealedata)
+# Set years to merge for 
+years = range(1991,1998) + range(1997,2013,2)
 
-# Yearly data
-fpath = 'M:/Senior Living/Data/PSID Data/years/' + str(y) + '.csv'
-#fpath = '/users/ShruthiVenkatesh/Documents/Senior Living Project/Data/' + str(y) + '.csv'
-vfpath = 'M:/Senior Living/Data/PSID Data/agecohort_vars.csv'
-famintnum = (pd.read_csv(vfpath).groupby('year').get_group(y)).loc[0, 'famintnum']
-ydf = pd.read_csv(fpath)
+# Set paths to Beale data, variable names, yearly data, and output file
+fbeale = 'M:/Senior Living/Data/PSID Data/Beale Urbanicity/newbeale8511.csv'
+fvars = 'M:/Senior Living/Data/PSID Data/agecohort_vars.csv'
+fdata = 'M:/Senior Living/Data/PSID Data/years/' 
+foutput = 'M:/Senior Living/Data/PSID Data/Merged Metro/'
 
-# Isolate yearly obs from Beale df
-yBeale = pd.DataFrame(beale.loc[beale['CBV2'] == y])
+def mergeBeale(y, fbeale, fvars, fdata, foutput): 
 
-# Merge yearly obs to yearly data by fam id
+	# Beale data into df 
+	beale = pd.read_csv(fbeale)
 
+	# Yearly data into df 
+	famintnum = (pd.read_csv(fvars).groupby('year').get_group(y)).reset_index().loc[0, 'famintnum']
+	ydf = pd.read_csv(fdata+str(y)+'.csv').dropna(subset=[famintnum])
 
+	# Isolate yearly obs from Beale df
+	yBeale = pd.DataFrame(beale.loc[beale['CBV2'] == y])
 
-# Outsheet 
+	# Merge yearly obs to yearly data by fam id
+	yBeale.rename(columns = {'CBV3': famintnum}, inplace = True)
+	output = pd.merge(ydf, yBeale, how = 'outer')
+
+	# Outsheet 
+	output.to_csv(foutput+str(y)+'.csv', index=False)
+
+if __name__ == '__main__': 
+	for y in years: 
+		print "Writing for " + str(y)
+		mergeBeale(y, fbeale, fvars, fdata, foutput)
