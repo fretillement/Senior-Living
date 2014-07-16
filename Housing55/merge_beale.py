@@ -4,10 +4,10 @@ to PSID data by year and output as csv files.
 """
 import pandas as pd 
 
-# Set years to merge for 
+# Set years to merge 
 years = range(1991,1998) + range(1997,2013,2)
 
-# Set paths to Beale data, variable names, yearly data, and output file
+# Set paths to Beale data, variable names, yearly data, and output
 fbeale = 'M:/Senior Living/Data/PSID Data/Beale Urbanicity/newbeale8511.csv'
 fvars = 'M:/Senior Living/Data/PSID Data/agecohort_vars.csv'
 fdata = 'M:/Senior Living/Data/PSID Data/years/' 
