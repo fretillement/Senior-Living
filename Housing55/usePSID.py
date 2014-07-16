@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-class cohortShare:
+class usePSID:
 	'''
 	Common class of functions to manipulate any PSID yearly dataset
 	'''
@@ -31,7 +31,7 @@ class cohortShare:
 			return data.loc[(data[seqnum_var] == 1) & (data[relhead_var] == 10)]			
 		else: return data
 
-	# Extract obs that answer trueval to some var (label)
+	# Extract obs that answer 'trueval' to some question ('label')
 	def select(self, label, trueval): 
 		data = self.df
 		select_var = self.getVarname(label)
@@ -70,6 +70,7 @@ class cohortShare:
 			output[group] = np.true_divide(info[wt_var].sum(), info[wt_var].sum())
 		return output 
 
+'''
 # Testing functions in cohortShare 
 fname = 'M:/Senior Living/Data/PSID Data/Years/1991.csv'
 year = 1991
@@ -88,3 +89,4 @@ def testSuite():
 
 if __name__ == "__main__": 
 	testSuite()
+'''
