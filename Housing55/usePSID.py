@@ -78,7 +78,8 @@ class usePSID:
 		if select_var in dfgr.columns: 
 			for g in dfgr.groupby(select_var): 
 				(group, info) = g
-				output[str(self.year)+'_'+codes[group]] = np.true_divide(info[wt_var].sum(), dfgr[wt_var].sum())
+				output[str(self.year) + '_' + codes[group]] = np.true_divide(info[wt_var].count(), dfgr[wt_var].count())
+				#output[str(self.year)+'_'+codes[group]] = np.true_divide(info[wt_var].sum(), dfgr[wt_var].sum())
 		return output 
 
 	# Merge the Beale Urbanicity variable to a yearly df object
@@ -88,13 +89,15 @@ class usePSID:
 		famintnum = self.getVarname('famintnum')
 		data = (self.df).dropna(subset=[famintnum])
 		yBeale.rename(columns = {'CBV3': famintnum}, inplace = True)
-		return pd.merge(ydf, yBeale, how = 'outer')
+		merged = pd.merge(ydf, yBeale, how = 'outer')
+		merged['urban'] = (merged['CBV4'] in range(1,6))
+		return merged 
 
 # Testing functions in cohortShare 
 years = range(1991, 1997) + range(1997, 2013, 2)
 nbins = range(50, 100, 5)
-varlabel = "t_seniorh"
-f_output = "M:/Senior Living/Data/PSID Data/Age Profiles/" + varlabel + ".csv"
+varlabel = "htenure"
+f_output = "M:/Senior Living/Data/PSID Data/Age Profiles/" + varlabel + "_urban.csv"
 vname = "M:/Senior Living/Data/PSID Data/Agecohort_vars.csv"
 
 def testSuite(y, nbins, varlabel): 
@@ -103,6 +106,8 @@ def testSuite(y, nbins, varlabel):
 	obj = usePSID(y, fname, vname)
 	# Create an age indicator 
 	df_age = obj.mergeAgeCohort(max(nbins), min(nbins), nbins)
+	# Merge urbanicity indicator
+	#df_beale = df_age.
 	# Group by the age indicator 
 	df_age_gr = df_age.groupby('agecat')
 	# For each group, compute share of housing tenure/ type/ etc
