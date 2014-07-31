@@ -5,6 +5,7 @@ class usePSID:
 	'''
 	A class of common functions to manipulate any PSID yearly dataset
 	'''
+	# Yearly df object identified by year, filepath, variable filepath, and dataframe 
 	def __init__(self, year, fname, vname): 
 		self.year = year 
 		self.location = fname
@@ -58,6 +59,7 @@ class usePSID:
 			right_index = True, 
 			right_on = ['agecat'])
 
+	# Get response definitions for a given varlabel
 	def getCodes(self, varlabel):
 		if varlabel == 'htenure': return {8: "Neither owns or rents", 9: "NA; Refused", 5: "Rents", 1: "Owns"}
 		if varlabel == 'hstructure': return {1: "One-family house", 2: "Two-family house", 3: "Apartment/housing project",
@@ -78,8 +80,8 @@ class usePSID:
 		if select_var in dfgr.columns: 
 			for g in dfgr.groupby(select_var): 
 				(group, info) = g
-				output[str(self.year) + '_' + codes[group]] = np.true_divide(info[wt_var].count(), dfgr[wt_var].count())
-				#output[str(self.year)+'_'+codes[group]] = np.true_divide(info[wt_var].sum(), dfgr[wt_var].sum())
+				#output[str(self.year) + '_' + codes[group]] = np.true_divide(info[wt_var].count(), dfgr[wt_var].count())
+				output[str(self.year)+'_'+codes[group]] = np.true_divide(info[wt_var].sum(), dfgr[wt_var].sum())
 		return output 
 
 	# Merge the Beale Urbanicity variable to a yearly df object
@@ -94,20 +96,20 @@ class usePSID:
 		return merged 
 
 # Testing functions in cohortShare 
-years = range(1991, 1997) + range(1997, 2013, 2)
-nbins = range(50, 100, 5)
-varlabel = "htenure"
-f_output = "M:/Senior Living/Data/PSID Data/Age Profiles/" + varlabel + "_urban.csv"
-vname = "M:/Senior Living/Data/PSID Data/Agecohort_vars.csv"
 
 def testSuite(y, nbins, varlabel): 
+	years = range(1991, 1997) + range(1997, 2013, 2)
+	nbins = range(50, 90, 5)
+	varlabel = "htenure"
+	f_output = "M:/Senior Living/Data/PSID Data/Age Profiles/" + varlabel + ".csv"
+	vname = "M:/Senior Living/Data/PSID Data/Agecohort_vars.csv"
+
 	output = {i:{} for i in nbins[0:len(nbins)-1]}
 	fname = 'M:/Senior Living/Data/PSID Data/Years/' + str(y) + '.csv'
 	obj = usePSID(y, fname, vname)
 	# Create an age indicator 
 	df_age = obj.mergeAgeCohort(max(nbins), min(nbins), nbins)
 	# Merge urbanicity indicator
-	#df_beale = df_age.
 	# Group by the age indicator 
 	df_age_gr = df_age.groupby('agecat')
 	# For each group, compute share of housing tenure/ type/ etc
@@ -121,5 +123,5 @@ if __name__ == "__main__":
 	for y in years: 
 		yearlyinfo = testSuite(y, nbins, varlabel)
 		[output[i].update(yearlyinfo[i]) for i in yearlyinfo]
-		print y
+		#print y
 	(pd.DataFrame(output)).to_csv(f_output)
