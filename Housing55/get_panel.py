@@ -21,15 +21,22 @@ lower = 50
 years = range(1991, 1998) + range(1999, 2012, 2)
 
 # Find varlabels across time 
-allvars = pd.read_csv(vfpath, index_col='year')
-varlist = list(set(itertools.chain(*(allvars.values))))
+vardict = {}
+allvars = pd.DataFrame.to_dict(pd.read_csv(vfpath, index_col='year'))
+#varlist = list(set(itertools.chain(*(allvars.values))))
+for k in allvars: 
+	for l in allvars[k]:
+		vardict.update(dict(zip([allvars[k][l]],[k+str(l)])))
 
 # Isolate vars from main dataset
-master = pd.read_csv(dfpath, usecols=varlist)
+master = pd.read_csv(dfpath, usecols=vardict.keys())
 
 # Keep only obs past the age of lower
-agevar = allvars['age'][years[len(years)-1]]
-output = master.loc[master[agevar] >= lower]
+output = master.loc[master['ER34104'] >= lower]
+
+# Rename column names
+for v in output: 
+	output.rename(columns={v: vardict[v]}, inplace=True)
 
 # Outsheet 
 output.to_csv(ofpath, index=False)
