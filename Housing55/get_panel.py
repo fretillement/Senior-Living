@@ -1,5 +1,5 @@
 import pandas as pd
-import itertools
+
 
 ''' 
 This script arranges the raw PSID data 
@@ -8,13 +8,10 @@ This script arranges the raw PSID data
 Key variables: house type, senior housing status, 
 housing tenure, type of senior housing
 '''
-# Choose variable 
-varlabel = 'htenure'
-
 # Edit filepaths below 
 vfpath = 'M:/Senior Living/Data/PSID Data/agecohort_vars.csv'
 dfpath = 'M:/Senior Living/Data/PSID Data/J176012.csv'
-ofpath = 'M:/Senior Living/Data/PSID Data/Panel/pan_'+varlabel+'.csv'
+ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv'
 
 # Choose age limit and timespan 
 lower = 50
@@ -39,4 +36,4 @@ for v in output:
 	output.rename(columns={v: vardict[v]}, inplace=True)
 
 # Outsheet 
-output.to_csv(ofpath, index=False)
+output.reset_index().to_csv(ofpath, index=True)
