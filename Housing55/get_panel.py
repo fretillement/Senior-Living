@@ -15,13 +15,12 @@ ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv'
 
 # Choose age limit and timespan 
 lower = 50
-years = range(1991, 1998) + range(1999, 2012, 2)
+years = range(1975, 1998) + range(1999, 2012, 2)
+skip = range(1, min(years) - 1968 +1) if min(years) <= 1999 else "Error in years assignment"
 
-# Find varlabels across time 
+# Find varlabels across time for years above
 vardict = {}
-allvars = pd.DataFrame.to_dict(pd.read_csv(vfpath, index_col='year'))
-
-print allvars['age']
+allvars = pd.DataFrame.to_dict(pd.read_csv(vfpath, index_col=0, skiprows=skip))
 
 #varlist = list(set(itertools.chain(*(allvars.values))))
 for k in allvars: 
@@ -32,15 +31,7 @@ for k in allvars:
 master = pd.read_csv(dfpath, usecols=vardict.keys())
 
 # Keep only obs past the age of lower
-output = master.loc[(master['ER30004'] >= lower) \
-				| (master['ER30023'] >= lower) \
-				| (master['ER30046'] >= lower) \
-				| (master['ER30070'] >= lower) \
-				| (master['ER30094'] >= lower) \
-				| (master['ER30120'] >= lower) \
-				| (master['ER30141'] >= lower) \
-				| (master['ER30163'] >= lower) \
-				| (master['ER30191'] >= lower) \
+output = master.loc[(master['ER30191'] >= lower) \
 				| (master['ER30220'] >= lower) \
 				| (master['ER30249'] >= lower) \
 				| (master['ER30286'] >= lower) \
@@ -94,3 +85,16 @@ output = output.loc[:,cols]
 
 # Outsheet 
 output.to_csv(ofpath, index=False)
+
+'''
+Age codes for 1968-1975
+(master['ER30004'] >= lower) \
+				| (master['ER30023'] >= lower) \
+				| (master['ER30046'] >= lower) \
+				| (master['ER30070'] >= lower) \
+				| (master['ER30094'] >= lower) \
+				| (master['ER30120'] >= lower) \
+				| (master['ER30141'] >= lower) \
+				| (master['ER30163'] >= lower) \
+				|
+''' 
