@@ -23,8 +23,22 @@ vardf = pd.read_csv(vardata)
 
 # Generate a total num_transitions var
 missing = map(str, [1973, 1974, 1982])
-transitions = df.loc[:, ['hstructure'+ x for x in years if x not in missing]]
+transitions = df.loc[:, ['hstructure'+ x for x in years if x not in missing]+['unique_pid']]
 df['num_transitions'] = transitions.apply(lambda x: x.nunique()-1, axis=1)
+
+
+# Count up type of transitions each type 
+stacked = pd.DataFrame(transitions.set_index('unique_pid').stack(), columns=['struct_type'])
+stacked.reset_index(inplace=True)
+stacked.reset_index(inplace=True)
+pivoted = stacked.pivot(index='index', columns='struct_type', values='unique_pid')
+pivoted = pivoted.fillna(0)
+pivoted['unique_pid'] = pivoted.max(axis=0, skipna=True)
+
+
+
+
+'''
 
 # Generate age of first transition var
 
@@ -56,3 +70,4 @@ tlabels = {1: 'Single-family', \
 # Outsheet 
 df.to_csv(out)
 
+'''

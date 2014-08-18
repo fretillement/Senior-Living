@@ -66,7 +66,8 @@ for v in output:
 	output.rename(columns={v: vardict[v]}, inplace=True)
 
 # Create unique id
-output['unique_pid'] = output.personnum2011.map(str)+ "_" + output.id19682011.map(str)
+output['unique_pid2'] = output.personnum2011.map(str)+ "_" + output.id19682011.map(str)
+output['unique_pid'] = output.index+1
 
 # Reorder column names
 header = output.columns.tolist()
