@@ -15,7 +15,7 @@ ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv'
 
 # Choose age limit and timespan 
 lower = 50
-years = range(1975, 1998) + range(1999, 2012, 2)
+years = range(1975, 1989) + range(1999, 2012, 2)
 skip = range(1, min(years) - 1968 +1) if min(years) <= 1999 else "Error in years assignment"
 
 # Find varlabels across time for years above
