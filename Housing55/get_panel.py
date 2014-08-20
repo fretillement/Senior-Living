@@ -15,7 +15,7 @@ ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv'
 
 # Choose age limit and timespan 
 lower = 50
-years = range(1975, 1989) + range(1999, 2012, 2)
+years = range(1975, 1999) + range(1999, 2012, 2)
 skip = range(1, min(years) - 1968 +1) if min(years) <= 1999 else "Error in years assignment"
 
 # Find varlabels across time for years above
@@ -85,7 +85,9 @@ cols = ['unique_pid']+ ['id19682011']+ ['personnum2011']+\
 output = output.loc[:,cols]
 
 # Outsheet 
+print output.columns.tolist()
 output.to_csv(ofpath, index=False)
+
 
 '''
 Age codes for 1968-1975
