@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 ''' 
-This program counts and characterizes the housing 
+This script counts and characterizes the housing 
 transitions of the elderly in PSID file J170612 
 '''
 # Set filepaths
@@ -45,34 +45,34 @@ def countTransitions(df):
 
 	# Pivot the observations 
 	piv = st.pivot(index='index', columns='hstructure', values='unique_pid')
-	
+
+	# Rename columns
+	namesdict = {1.0: 'Single-family house', 
+				 2.0: 'Duplex/ 2-family house', 
+				 3.0: 'Multifamily', 
+				 4.0: 'Mobile Home/ trailer', 
+				 5.0: 'Condo', 
+				 6.0: 'Townhouse', 
+				 7.0: 'Other', 
+				 8.0: "Don't know", 
+				 9.0: "Refused" 
+				 }
+	piv = piv.rename(columns=namesdict)
+
 	# Convert the info in pivoted df to dummy vars
 	piv['unique_pid'] = piv.max(axis=1, skipna=True)
 	#piv.set_index('unique_pid', inplace=True, drop=True)
 	piv.fillna(0, inplace=True)
 	piv = piv.drop(labels=[0], axis=1)
-
+	piv[piv.loc[:, namesdict.values()]>0] = 1
+	
 	# Add a year variable
 	st['year'] = st['level_1'].str[10:].astype(float)
 	apiv = st.pivot(index='index', columns='hstructure', values='year')
 	apiv['year'] = apiv.max(axis=1, skipna=True)
-	piv['year'] = pd.Series(apiv['year'])
-
-	# Rename columns
-	namesdict = {'1.0': 'Single-family house', \
-				 '2.0': 'Duplex/ 2-family house', \
-				 '3:0': 'Multifamily', \
-				 '4.0': 'Mobile Home/ trailer', \
-				 '5.0': 'Condo', \
-				 '6.0': 'Townhouse', \
-				 '7.0': 'Other', \
-				 '8.0': "Don't know", \
-				 '9.0': "Refused" 
-				 }
-	piv.rename(columns=namesdict, inplace=True)			 
-
-	# Return
-	piv[piv.loc[:, map(float, range(1,10))]>0] = 1
+	piv['year'] = pd.Series(apiv['year'])			 
+	
+	# Return	
 	return piv
 
 
@@ -81,7 +81,8 @@ def ageLookup(row, age_df):
 	# This function takes a row, and looks up a person's
 	# age based on unique_pid and year		
 	# Construct the agevar based on the year in this row
-	agevar = 'age'+str(int(row['year']))	
+	year = int(row['year'])
+	agevar = 'age'+str(year)	
 	
 	# Look up the person's unique_pid
 	pid = row['unique_pid']
@@ -93,10 +94,35 @@ def ageLookup(row, age_df):
 	# Return the row
 	return agevalue
 
+def fillAges(group): 
+	group.reset_index(inplace=True)
+	ages = group['age']
+	first = ages[ages>0].first_valid_index()
+	last = ages[ages>0].last_valid_index()
+	size = len(ages.index)	
+	
 
-tcounts = countTransitions(df)
-fn = lambda x: ageLookup(x, age_df)
-tcounts['age'] = tcounts.apply(fn, axis=1)
-tcounts.set_index('unique_pid', inplace=True)
-#print tcounts.head(30)
-tcounts.to_csv(out)
+	#for g in gr: 
+	#	(pid, info) = g
+	#	if info.loc[:, info['age'== 0]: 
+	#		print True
+	#print df1.head(20
+
+
+
+	return 
+
+
+
+
+if __name__ == "__main__": 
+	#tcounts = countTransitions(df)
+	#fn = lambda x: ageLookup(x, age_df)
+	#tcounts['age'] = tcounts.apply(fn, axis=1)
+	#tcounts.set_index('unique_pid', inplace=True)
+	#print tcounts.head(30)
+	#tcounts.to_csv(out)
+	#fillAges(out)
+	df1 = pd.read_csv(out, usecols=['age', 'unique_pid', 'year'])
+	gr = df1.groupby('unique_pid')
+	gr.apply(fillAges)
