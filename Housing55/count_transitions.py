@@ -48,18 +48,33 @@ def countTransitions(df):
 	
 	# Convert the info in pivoted df to dummy vars
 	piv['unique_pid'] = piv.max(axis=1, skipna=True)
-	piv.set_index('unique_pid', inplace=True, drop=True)
-	piv[piv>0] = 1
+	#piv.set_index('unique_pid', inplace=True, drop=True)
 	piv.fillna(0, inplace=True)
 	piv = piv.drop(labels=[0], axis=1)
 
 	# Add a year variable
-	gr = piv.groupby(piv.index)
-	piv['year'] = gr.apply(lambda x: pd.Series(range(1975, 1975+len(x[1].index)), index=x[1].index))
+	st['year'] = st['level_1'].str[10:].astype(float)
+	apiv = st.pivot(index='index', columns='hstructure', values='year')
+	apiv['year'] = apiv.max(axis=1, skipna=True)
+	piv['year'] = pd.Series(apiv['year'])
+
+	# Rename columns
+	namesdict = {'1.0': 'Single-family house', \
+				 '2.0': 'Duplex/ 2-family house', \
+				 '3:0': 'Multifamily', \
+				 '4.0': 'Mobile Home/ trailer', \
+				 '5.0': 'Condo', \
+				 '6.0': 'Townhouse', \
+				 '7.0': 'Other', \
+				 '8.0': "Don't know", \
+				 '9.0': "Refused" 
+				 }
+	piv.rename(columns=namesdict, inplace=True)			 
 
 	# Return
-	piv.reset_index(inplace=True)
+	piv[piv.loc[:, map(float, range(1,10))]>0] = 1
 	return piv
+
 
 # Add age variable to a countTransitions df
 def ageLookup(row, age_df):
@@ -73,13 +88,15 @@ def ageLookup(row, age_df):
 
 	# Grab information about the person based on her unique_pid	
 	person = age_df.loc[age_df['unique_pid'] == pid]	
-	print person
 	agevalue = person.reset_index().loc[0, agevar]
 
 	# Return the row
 	return agevalue
 
+
 tcounts = countTransitions(df)
 fn = lambda x: ageLookup(x, age_df)
 tcounts['age'] = tcounts.apply(fn, axis=1)
+tcounts.set_index('unique_pid', inplace=True)
+#print tcounts.head(30)
 tcounts.to_csv(out)

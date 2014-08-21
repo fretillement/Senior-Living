@@ -65,10 +65,6 @@ output = master.loc[(master['ER30191'] >= lower) \
 for v in output: 
 	output.rename(columns={v: vardict[v]}, inplace=True)
 
-# Create unique id
-output['unique_pid2'] = output.personnum2011.map(str)+ "_" + output.id19682011.map(str)
-output['unique_pid'] = output.index+1
-
 # Reorder column names
 header = output.columns.tolist()
 cols = ['unique_pid']+ ['id19682011']+ ['personnum2011']+\
@@ -82,10 +78,14 @@ cols = ['unique_pid']+ ['id19682011']+ ['personnum2011']+\
 		[x for x in header if 'seqnum' in x]+ \
 		[x for x in header if 'relhead' in x]+ \
 		[x for x in header if 'famintnum' in x]
+
+# Create unique id
+output.reset_index(inplace=True)
+output['unique_pid2'] = output.personnum2011.map(str)+ "_" + output.id19682011.map(str)
+output['unique_pid'] = output.index+1
 output = output.loc[:,cols]
 
 # Outsheet 
-print output.columns.tolist()
 output.to_csv(ofpath, index=False)
 
 
