@@ -96,21 +96,68 @@ def ageLookup(row, age_df):
 
 def fillAges(group): 
 	group.reset_index(inplace=True)
-	ages = group['age']
-	first = ages[ages>0].first_valid_index()
-	last = ages[ages>0].last_valid_index()
-	size = len(ages.index)	
-	
+	g = group['age']
+	first = g[g>0].first_valid_index()
+	last = g[g>0].last_valid_index()
+	l = len(g.index)
+	output = []
+	if (first > 0) and (last+1 < l): print ["Odd solutions", first, last]
+	'''
+	if (last+1== l and first == 0):
+		#print "1"
+		output.append("equal")
+		#out = pd.DataFrame(calcAges(group, g, first, last, l, 1))
+		#group['age2'] = out
+		#print '1'
+		#return group
+	#print [last, first, l]
+	if (last+1 < l and first == 0):
+		output.append("less than")
+		#out = pd.DataFrame(calcAges(group, g, first, last, l, 2))
+		#group['age2'] = out
+	#	print "2"
+		#return group
+	if (last+1+first > l):
+	#	print "3"
+		output.append("greater than")
+	#	#out = pd.DataFrame(calcAges(group, g, first, last, l, 3))
+	#	#group['age2'] = out
+	#	print '3'
+		#return group
+	#else: print [last+first < l]
+	print output
+	'''
 
-	#for g in gr: 
-	#	(pid, info) = g
-	#	if info.loc[:, info['age'== 0]: 
-	#		print True
-	#print df1.head(20
 
 
+def calcAges(group, g, first, last, l, condition): 	
+	o = map(int, g[g>0].tolist())
+	if condition == 1: 
+		return o
+	if condition == 2: 
+		while (last+1 < l) :	
+			#print group['unique_pid']
+			thisyr = group.ix[last, 'year'] 
+			nextyr = group.ix[last+1, 'year']
+			#o.append(g.ix[last, 0]+(next-this))
+			last = last + 1
+			#print last
+			#print g.ix[int(last),0]
+		return o 
+	if condition == 3:
+		#print g.first_valid_index()
+		while (first >= g.first_valid_index()) :
+			#thisyr = int(group.ix[first, 'year'])
+			#prevyr = int(group.ix[first-1, 'year'])
+			#print [group.ix[first,'unique_pid'], g[first]-(thisyr-prevyr)]
+			#o = [g[first]] + o
+			#o.insert(0, int(g[int(first)]-(thisyr-prevyr)))
+			first = first -1
+			print [first in g.index.tolist()]
+		return o
+	else : 
+		return "Error"
 
-	return 
 
 
 
@@ -124,5 +171,6 @@ if __name__ == "__main__":
 	#tcounts.to_csv(out)
 	#fillAges(out)
 	df1 = pd.read_csv(out, usecols=['age', 'unique_pid', 'year'])
-	gr = df1.groupby('unique_pid')
-	gr.apply(fillAges)
+	df2 = df1.groupby('unique_pid').apply(fillAges)
+	#df3 = df2.apply(fillAges)
+	#print df1.head(30)
