@@ -108,7 +108,7 @@ def ageLookup(row, age_df):
 def fillAges(group): 
 	# Print the person's id
 	#print group['unique_pid'].get_values()[0]
-	group.reset_index(inplace=True)
+	group.reset_index(inplace=True, drop=True)
 
 	first = group['age'].loc[group['age']>0].first_valid_index()
 	last = group['age'].loc[group['age']>0].last_valid_index()	
@@ -152,7 +152,7 @@ if __name__ == "__main__":
 	tcounts = countTransitions(df, namesdict)
 	fn = lambda x: ageLookup(x, age_df)
 	tcounts['age'] = tcounts.apply(fn, axis=1)
-	tcounts.set_index('unique_pid', inplace=True)
+	tcounts.set_index('unique_pid', inplace=True, drop=False)
 	df_output = tcounts.groupby('unique_pid').apply(fillAges)
-	df_output.drop('index', axis=1, inplace=True)
+	#df_output.drop('index', axis=1, inplace=True)
 	df_output.to_csv('/users/ShruthiVenkatesh/Desktop/transitions2.csv', index=False, columns=['unique_pid', 'age', 'age2']+namesdict.values())
