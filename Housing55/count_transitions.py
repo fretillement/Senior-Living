@@ -6,11 +6,11 @@ This script counts the housing transitions of the elderly in PSID file J170612
 '''
 
 # Set filepaths
-#out = "M:/Senior Living/Data/PSID Data/Panel/transitions.csv"
-out = "/Users/ShruthiVenkatesh/Desktop/transitions.csv"
+out = "M:/Senior Living/Data/PSID Data/Panel/transitions.csv"
+#out = "/Users/ShruthiVenkatesh/Desktop/transitions.csv"
 panel_code = "M:/Senior Living/Code/Senior-living/Housing55/get_panel.py"
-paneldata ="/users/ShruthiVenkatesh/Desktop/elderly_panel.csv"
-#paneldata = "M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv"
+#paneldata ="/users/ShruthiVenkatesh/Desktop/elderly_panel.csv"
+paneldata = "M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv"
 vardata = "M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv"
 
 
@@ -41,6 +41,61 @@ df = pd.read_csv(paneldata)
 #vardf = pd.read_csv(vardata)
 age_df = df.loc[:, ['unique_pid']+['age' + x for x in years]]
 
+# Add var from the panel dataset to a countTransitions df
+def varLookUp(row, namestub, namestub_df):
+	
+	# Identify year and id to look for 
+	year = int(row['year'])
+	unique_pid = int(row['unique_pid'])
+
+	# Extract the value of a variable based on the year and id of obs
+	if namestub+str(year) in namestub_df.columns.tolist(): 
+		val = namestub_df.loc[namestub_df['unique_pid']==unique_pid, namestub+str(year)]
+	else: 
+		val = 0
+
+	# Update and return the row
+	row[namestub] = int(val)
+	return row
+
+# Pull info about a panel var given a group of obs in a transitions df
+def varPull(group, namestub, namestub_df): 
+	# For each year, look up value of namestub
+	fn = lambda x: varLookUp(x, namestub, namestub_df)
+	
+	# Update and return this group of obs
+	group = group.groupby('year').apply(fn)
+	return group
+
+# Identify members of the panel who have been institutionalized
+# Based on method outlined in Ellwood and Keane (1990)
+def identifyInst(transitionsdf):
+	# Check if person has moved
+	moved = transitionsdf['moved'] == 1
+
+	# Check for involuntary reasons for moving
+	reason = transitionsdf['whymoved'] == 7
+
+	# Check number of rooms (must be <= 2) 
+	rooms = transitionsdf['numrooms'] <= 2
+
+	# Check that the housing structure is "other"
+	hstructure = transitionsdf['Other'] == 1
+
+	# Check for senior-housing self-report
+	seniorhousing = transitionsdf['seniorh'] == 1
+
+	# Check for institutionalization variable (1984-)
+	selfinst = (transitionsdf['tinst'] == 3) | (transitionsdf['tinst'] == 7) | (transitionsdf['tinst'] == 9)
+
+	# Check that the hh size never grows past 1 before move
+	# hhsizegr = transition['famsize']
+
+	# Update and return the transitionsdf
+	transitionsdf['inst'] = (moved & reason & rooms & hstructure) | (seniorhousing) | (selfinst)
+	return transitionsdf
+
+
 
 # Generate a total num_transitions var
 def totalTransitions(df):
@@ -70,7 +125,6 @@ def countTransitions(df, namesdict):
 
 	# Convert the info in pivoted df to dummy vars
 	piv['unique_pid'] = piv.max(axis=1, skipna=True)
-	#piv.set_index('unique_pid', inplace=True, drop=True)
 	piv.fillna(0, inplace=True)
 	piv = piv.drop(labels=[0], axis=1)
 	piv[piv.loc[:, namesdict.values()]>0] = 1
@@ -82,8 +136,7 @@ def countTransitions(df, namesdict):
 	piv['year'] = pd.Series(apiv['year'])			 
 	
 	# Return	
-	return piv
-
+	return piv 
 
 # Add age variable to a countTransitions df
 def ageLookup(row, age_df):
@@ -147,12 +200,42 @@ def calcAges(gr, first, last, l):
 	# Return a list of filled in ages 
 	return o
 
+def reverseCode(group, var):
+	l = len(group.index)
+	#gr = gr.reset_index()
+	first = group[group['inst'] == True].first_valid_index()
+	moved = group[group['moved'] == 1].first_valid_index()
+	o = gr[gr['inst'] == True].tolist()
+	
 
-if __name__ == "__main__": 
-	tcounts = countTransitions(df, namesdict)
-	fn = lambda x: ageLookup(x, age_df)
-	tcounts['age'] = tcounts.apply(fn, axis=1)
-	tcounts.set_index('unique_pid', inplace=True, drop=False)
-	df_output = tcounts.groupby('unique_pid').apply(fillAges)
-	#df_output.drop('index', axis=1, inplace=True)
-	df_output.to_csv('/users/ShruthiVenkatesh/Desktop/transitions2.csv', index=False, columns=['unique_pid', 'age', 'age2']+namesdict.values())
+	return
+
+
+if __name__ == "__main__":
+	#tcounts = countTransitions(df, namesdict)
+	#fn = lambda x: ageLookup(x, age_df)
+	#tcounts['age'] = tcounts.apply(fn, axis=1)
+	#tcounts.set_index('unique_pid', inplace=True, drop=False)
+	#df_output = tcounts.groupby('unique_pid').apply(fillAges)
+	#df_output.to_csv(out, index=False, columns=['unique_pid', 'age', 'age2']+namesdict.values())
+	#transitions = df_output
+	
+	transitions = pd.read_csv(out)
+
+	#namestub_list = ['numrooms', 'famsize', 'moved', 'whymoved']
+	#namestub_list = ['tinst']
+	#for namestub in namestub_list: 
+	#	print namestub
+	#	namestub_df = df.loc[:, ['unique_pid']+[namestub + x for x in years if namestub+x in df.columns.tolist()]]
+	#	fn = lambda x : varPull(x, namestub, namestub_df)
+	#	transitions = transitions.groupby('unique_pid').apply(fn)
+	
+
+	#output = identifyInst(transitions)
+	
+
+
+	output.to_csv(out, index=False)
+
+	
+	

@@ -9,12 +9,12 @@ Key variables: house type, senior housing status,
 housing tenure, type of senior housing
 '''
 # Edit filepaths below 
-vfpath = '/users/shruthivenkatesh/desktop/Senior-Living/Psid_clean/agecohort_vars.csv'
-#vfpath = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
-dfpath = '/users/shruthivenkatesh/desktop/J177301.csv'
-#dfpath = 'M:/Senior Living/Data/PSID Data/J176012.csv'
-ofpath = '/users/shruthivenkatesh/desktop/elderly_panel.csv'
-#ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv'
+#vfpath = '/users/shruthivenkatesh/desktop/Senior-Living/Psid_clean/agecohort_vars.csv'
+vfpath = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
+#dfpath = '/users/shruthivenkatesh/desktop/J177301.csv'
+dfpath = 'M:/Senior Living/Data/PSID Data/J177301.csv'
+#ofpath = '/users/shruthivenkatesh/desktop/elderly_panel.csv'
+ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv'
 
 # Choose age limit and timespan 
 lower = 50
@@ -32,6 +32,7 @@ for k in allvars:
 		if allvars[k][l] != 0: vardict.update(dict(zip([allvars[k][l]],[k+str(l)])))
 
 # Isolate vars from main dataset
+print "Reading raw PSID data for all years"
 master = pd.read_csv(dfpath, usecols=vardict.keys())
 
 
@@ -67,13 +68,14 @@ output = master.loc[(master['ER30191'] >= lower) \
 				| (master['ER34104'] >= lower) ]
 
 # Rename column names
+print "Renaming columns"
 for v in output: 
 	output.rename(columns={v: vardict[v]}, inplace=True)
 
 # Reorder column names
 header = output.columns.tolist()
-cols = ['unique_pid']+ ['id19682011']+ ['personnum2011']+\
-		[x for x in header if 'htenure ' in x]+ \
+cols = ['unique_pid']+ ['unique_pid2'] + ['id19682011']+ ['personnum2011']+\
+		[x for x in header if 'htenure' in x]+ \
 		[x for x in header if 'hstructure' in x]+ \
 		[x for x in header if 'seniorh' in x and 't_seniorh' not in x]+ \
 		[x for x in header if 't_seniorh' in x]+ \
@@ -85,16 +87,23 @@ cols = ['unique_pid']+ ['id19682011']+ ['personnum2011']+\
 		[x for x in header if 'famintnum' in x] + \
 		[x for x in header if 'famsize' in x] + \
 		[x for x in header if 'numrooms' in x] + \
-		[x for x in header if 'moved' in x] + \
-		[x for x in header if 'whymoved' in x]
+		[x for x in header if 'moved' in x and 'whymoved' not in x] + \
+		[x for x in header if 'whymoved' in x]+\
+		[x for x in header if 'tinst' in x]
 
 # Create unique id
+print "Creating unique ID var"
 output.reset_index(inplace=True)
 output['unique_pid2'] = output.personnum2011.map(str)+ "_" + output.id19682011.map(str)
 output['unique_pid'] = output.index+1
-output = output.loc[:,cols]
+output = output.drop('index', axis=1)
+print len(cols)
+print len(header)
+print len(output.columns.tolist())
+output = output.ix[:,cols]
 
 # Outsheet 
+print "Outsheeting to " + ofpath
 output.to_csv(ofpath, index=False)
 
 '''
