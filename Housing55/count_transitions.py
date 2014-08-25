@@ -149,10 +149,10 @@ def calcAges(gr, first, last, l):
 
 
 if __name__ == "__main__": 
-	#tcounts = countTransitions(df)
-	#fn = lambda x: ageLookup(x, age_df)
-	#tcounts['age'] = tcounts.apply(fn, axis=1)
-	#tcounts.set_index('unique_pid', inplace=True)
-	#df_output = tcounts.groupby('unique_pid').apply(fillAges)
-	#df_output.drop('index', axis=1, inplace=True)
-	#df_output.to_csv('/users/ShruthiVenkatesh/Desktop/transitions2.csv', index=False, columns=['unique_pid', 'age', 'age2']+namesdict.values())
+	tcounts = countTransitions(df, namesdict)
+	fn = lambda x: ageLookup(x, age_df)
+	tcounts['age'] = tcounts.apply(fn, axis=1)
+	tcounts.set_index('unique_pid', inplace=True)
+	df_output = tcounts.groupby('unique_pid').apply(fillAges)
+	df_output.drop('index', axis=1, inplace=True)
+	df_output.to_csv('/users/ShruthiVenkatesh/Desktop/transitions2.csv', index=False, columns=['unique_pid', 'age', 'age2']+namesdict.values())

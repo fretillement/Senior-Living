@@ -3,15 +3,18 @@ import pandas as pd
 
 ''' 
 This script arranges the raw PSID data 
-(current file = J176012.txt) into a panel of senior citizen obs. 
+(current file = J177301.txt) into a panel of senior citizen obs. 
 
 Key variables: house type, senior housing status, 
 housing tenure, type of senior housing
 '''
 # Edit filepaths below 
-vfpath = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
-dfpath = 'M:/Senior Living/Data/PSID Data/J176012.csv'
-ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv'
+vfpath = '/users/shruthivenkatesh/desktop/Senior-Living/Psid_clean/agecohort_vars.csv'
+#vfpath = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
+dfpath = '/users/shruthivenkatesh/desktop/J177301.csv'
+#dfpath = 'M:/Senior Living/Data/PSID Data/J176012.csv'
+ofpath = '/users/shruthivenkatesh/desktop/elderly_panel.csv'
+#ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv'
 
 # Choose age limit and timespan 
 lower = 50
@@ -20,15 +23,17 @@ skip = range(1, min(years) - 1968 +1) if min(years) <= 1999 else "Error in years
 
 # Find varlabels across time for years above
 vardict = {}
-allvars = pd.DataFrame.to_dict(pd.read_csv(vfpath, index_col=0, skiprows=skip))
+vardf = pd.read_csv(vfpath, index_col=0, skiprows=skip).fillna(0)
+allvars = pd.DataFrame.to_dict(vardf)
 
 #varlist = list(set(itertools.chain(*(allvars.values))))
 for k in allvars: 
 	for l in allvars[k]:
-		vardict.update(dict(zip([allvars[k][l]],[k+str(l)])))
+		if allvars[k][l] != 0: vardict.update(dict(zip([allvars[k][l]],[k+str(l)])))
 
 # Isolate vars from main dataset
 master = pd.read_csv(dfpath, usecols=vardict.keys())
+
 
 # Keep only obs past the age of lower
 output = master.loc[(master['ER30191'] >= lower) \
@@ -77,7 +82,11 @@ cols = ['unique_pid']+ ['id19682011']+ ['personnum2011']+\
 		[x for x in header if 'famwt' in x]+ \
 		[x for x in header if 'seqnum' in x]+ \
 		[x for x in header if 'relhead' in x]+ \
-		[x for x in header if 'famintnum' in x]
+		[x for x in header if 'famintnum' in x] + \
+		[x for x in header if 'famsize' in x] + \
+		[x for x in header if 'numrooms' in x] + \
+		[x for x in header if 'moved' in x] + \
+		[x for x in header if 'whymoved' in x]
 
 # Create unique id
 output.reset_index(inplace=True)
@@ -87,7 +96,6 @@ output = output.loc[:,cols]
 
 # Outsheet 
 output.to_csv(ofpath, index=False)
-
 
 '''
 Age codes for 1968-1975
