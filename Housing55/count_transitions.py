@@ -200,16 +200,48 @@ def calcAges(gr, first, last, l):
 	# Return a list of filled in ages 
 	return o
 
-def reverseCode(group, var):
-	l = len(group.index)
-	#gr = gr.reset_index()
-	first = group[group['inst'] == True].first_valid_index()
-	moved = group[group['moved'] == 1].first_valid_index()
-	o = gr[gr['inst'] == True].tolist()
+def reverseCode(group):
+	coded_inst = group.loc[(group['inst'] == True) & (group['year'] >= 1984)]
 	
 
-	return
+	return coded_inst
 
+def movedWhere(locations):
+	piv = locations.T
+	piv = piv.sort().iteritems()
+	years = []
+	trans = []
+	for pair in piv: 
+		(index, df) = pair
+		if df['seniorh'] == 1: 
+			df = df.loc[df>0]
+			years.append(int(df.ix['year'])) 
+			trans.append('Senior housing')
+		else: 
+			df = df.loc[df>0]
+			years.append(int(df.ix['year'])) 
+			index = df.loc[df==1].index.tolist()
+			if len(index) > 0: trans.append(str([0]))
+			else: trans.append("No info") 
+	return (years, trans)
+
+		#s = pd.Series(df.loc[df>0])
+		#print s
+
+def numMoves(group):
+	housingcols = namesdict.values() + ['seniorh', 'year']
+	numtrans = len(group.loc[(group['moved'] == 1)])
+	pid = int(group['unique_pid'].reset_index().ix[0,0])
+	ages = map(int, pd.Series(group.loc[(group['moved']==1), 'age']).tolist())
+	locations = group.loc[(group['moved']==1), housingcols]
+	transitions = movedWhere(locations)
+	n = len(transitions[1])
+	transdict = {'numtrans': numtrans, 'unique_pid': pid}
+	if n > 0:
+		labels = ['trans'+ str(x) for x in range(1,n+1)] + ['age' + str(x) for x in range(1, n+1)]
+		transinfo = dict(zip(labels, transitions[1] + ages))
+		transdict.update(transinfo)
+	return pd.Series(transdict)
 
 if __name__ == "__main__":
 	#tcounts = countTransitions(df, namesdict)
@@ -232,10 +264,12 @@ if __name__ == "__main__":
 	
 
 	#output = identifyInst(transitions)
-	
+	gr = transitions.groupby('unique_pid')
+	group = gr.get_group(19)
+	test = gr.apply(numMoves)
+	print test.head()
 
-
-	output.to_csv(out, index=False)
+	#output.to_csv(out, index=False)
 
 	
 	
