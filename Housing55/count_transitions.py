@@ -1,8 +1,10 @@
 import pandas as pd 
 import os
-
+import gc
+gc.collect()
 ''' 
-This script counts the housing transitions of the elderly in PSID file J170612 
+This script counts the housing transitions of the elderly in 
+a raw PSID dataset (current file = J177301.txt)
 '''
 
 # Set filepaths
@@ -200,12 +202,6 @@ def calcAges(gr, first, last, l):
 	# Return a list of filled in ages 
 	return o
 
-def reverseCode(group):
-	coded_inst = group.loc[(group['inst'] == True) & (group['year'] >= 1984)]
-	
-
-	return coded_inst
-
 def movedWhere(locations):
 	piv = locations.T
 	piv = piv.sort().iteritems()
@@ -221,7 +217,7 @@ def movedWhere(locations):
 			df = df.loc[df>0]
 			years.append(int(df.ix['year'])) 
 			index = df.loc[df==1].index.tolist()
-			if len(index) > 0: trans.append(str([0]))
+			if len(index) > 0: trans.append(index[0])
 			else: trans.append("No info") 
 	return (years, trans)
 
@@ -231,17 +227,21 @@ def movedWhere(locations):
 def numMoves(group):
 	housingcols = namesdict.values() + ['seniorh', 'year']
 	numtrans = len(group.loc[(group['moved'] == 1)])
-	pid = int(group['unique_pid'].reset_index().ix[0,0])
-	ages = map(int, pd.Series(group.loc[(group['moved']==1), 'age']).tolist())
+	pid = int(group['unique_pid'].reset_index().ix[0,'unique_pid'])
+	ages = map(int, pd.Series(group.loc[(group['moved']==1), 'age2']).tolist())
 	locations = group.loc[(group['moved']==1), housingcols]
 	transitions = movedWhere(locations)
 	n = len(transitions[1])
+	
 	transdict = {'numtrans': numtrans, 'unique_pid': pid}
 	if n > 0:
-		labels = ['trans'+ str(x) for x in range(1,n+1)] + ['age' + str(x) for x in range(1, n+1)]
+		labels = ['trans'+ str(x) for x in range(1,n+1)] + ['age_trans' + str(x) for x in range(1, n+1)]
 		transinfo = dict(zip(labels, transitions[1] + ages))
 		transdict.update(transinfo)
-	return pd.Series(transdict)
+	'***Printing pid***'
+	print pid
+	return pd.DataFrame(pd.Series(transdict)).T
+	
 
 if __name__ == "__main__":
 	#tcounts = countTransitions(df, namesdict)
@@ -264,12 +264,19 @@ if __name__ == "__main__":
 	
 
 	#output = identifyInst(transitions)
+	
 	gr = transitions.groupby('unique_pid')
-	group = gr.get_group(19)
-	test = gr.apply(numMoves)
-	print test.head()
+	transinfo = gr.apply(numMoves)
+	output = df.merge(transinfo, on='unique_pid')
+	#group = gr.get_group(3)
+	#print numMoves(group)
 
-	#output.to_csv(out, index=False)
+	#test = numMoves(group)
+#	print paneldata.head()
+#	test = gr.apply(numMoves)
+#	print test.head()
+
+	output.to_csv('M:/Senior Living/Data/Psid data/Panel/elderly_trans2.csv', index=False)
 
 	
 	
