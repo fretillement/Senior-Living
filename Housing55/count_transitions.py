@@ -232,7 +232,6 @@ def numMoves(group):
 	locations = group.loc[(group['moved']==1), housingcols]
 	transitions = movedWhere(locations)
 	n = len(transitions[1])
-	
 	transdict = {'numtrans': numtrans, 'unique_pid': pid}
 	if n > 0:
 		labels = ['trans'+ str(x) for x in range(1,n+1)] + ['age_trans' + str(x) for x in range(1, n+1)]
@@ -242,8 +241,61 @@ def numMoves(group):
 	print pid
 	return pd.DataFrame(pd.Series(transdict)).T
 	
+def ageElderlyTrans(row): 
+	# Identify transitions past the age of 50
+	basic = {'unique_pid': row['unique_pid'], 'numtrans': row['numtrans']}
+
+	info = row[['age_trans'+ str(x) for x in range(1,25)]].dropna().to_dict()
+	list_info = info.items()
+
+	# First get age of transitions if they occurred after age 50
+	ageinfo = {'50plus_age' + str(list_info.index(i)+1): i[1] for i in info.items() if i[1] >= 50}
+		
+	# Get location info if transitions occurred past 50
+	locinfo = {'50plus_loc' + str(list_info.index(i)+1): row['trans'+str(list_info.index(i)+1)] for i in info.items() if i[1] >= 50}
+	#locinfo.update(ageinfo)
+	
+	if row['numtrans'] > 0: 
+		# Attach ID and total number of trans; return info
+		basic.update(locinfo)
+		basic.update(ageinfo)
+
+		# Reorder column names
+		cols = zip(locinfo.keys(), ageinfo.keys())
+		index = basic.keys()
+		for x in cols: 
+			index.append(x[0])
+			index.append(x[1])
+		index = list(reversed(index))
+		return pd.Series(basic, index=index).T
+
+	# If there are no trans past age of 50, return id and total trans
+	else: 
+		
+		return pd.Series(basic)
+
+
+
 
 if __name__ == "__main__":
+	df = pd.read_csv('M:/Senior living/Data/psid data/panel/transonly.csv')
+	row = df.ix[59,:]
+	#print row
+	print ageElderlyTrans(row)
+	output = df.apply(ageElderlyTrans, axis=1)
+	output.to_csv("M:/test.csv")
+
+
+
+
+
+
+
+
+
+
+
+
 	#tcounts = countTransitions(df, namesdict)
 	#fn = lambda x: ageLookup(x, age_df)
 	#tcounts['age'] = tcounts.apply(fn, axis=1)
@@ -252,7 +304,7 @@ if __name__ == "__main__":
 	#df_output.to_csv(out, index=False, columns=['unique_pid', 'age', 'age2']+namesdict.values())
 	#transitions = df_output
 	
-	transitions = pd.read_csv(out)
+	
 
 	#namestub_list = ['numrooms', 'famsize', 'moved', 'whymoved']
 	#namestub_list = ['tinst']
@@ -265,9 +317,9 @@ if __name__ == "__main__":
 
 	#output = identifyInst(transitions)
 	
-	gr = transitions.groupby('unique_pid')
-	transinfo = gr.apply(numMoves)
-	output = df.merge(transinfo, on='unique_pid')
+	#gr = transitions.groupby('unique_pid')
+	#transinfo = gr.apply(numMoves)
+	#output = df.merge(transinfo, on='unique_pid')
 	#group = gr.get_group(3)
 	#print numMoves(group)
 
@@ -276,7 +328,9 @@ if __name__ == "__main__":
 #	test = gr.apply(numMoves)
 #	print test.head()
 
-	output.to_csv('M:/Senior Living/Data/Psid data/Panel/elderly_trans2.csv', index=False)
+	#output.to_csv('M:/Senior Living/Data/Psid data/Panel/elderly_trans2.csv', index=False)
+
+
 
 	
 	
