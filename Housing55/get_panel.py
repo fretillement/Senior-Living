@@ -9,17 +9,18 @@ Key variables: house type, senior housing status,
 housing tenure, type of senior housing
 '''
 # Edit filepaths below 
-vfpath = '/users/shruthivenkatesh/desktop/Senior-Living/Psid_clean/agecohort_vars.csv'
-#vfpath = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
-dfpath = '/users/shruthivenkatesh/desktop/J177301.csv'
-#dfpath = 'M:/Senior Living/Data/PSID Data/J177301.csv'
-ofpath = '/users/shruthivenkatesh/desktop/elderly_panel00-11.csv'
-#ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel.csv'
+#vfpath = '/users/shruthivenkatesh/desktop/Senior-Living/Psid_clean/agecohort_vars.csv'
+vfpath = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
+#dfpath = '/users/shruthivenkatesh/desktop/J177301.csv'
+dfpath = 'M:/Senior Living/Data/PSID Data/J177301.csv'
+#ofpath = '/users/shruthivenkatesh/desktop/elderly_panel00-11.csv'
+ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel75-84.csv'
 
 # Choose age limit and timespan 
 lower = 55
-years = range(2001,2012,2)
-#years = range(1975, 1984)
+#years = range(2001,2012,2)
+#years = range(2001,2012, 2)
+years = range(1975, 1985)
 #years = range(1975, 1999) + range(1999, 2012, 2)
 #skip = range(1, min(years) - 1968 +1) if min(years) <= 1999 else "Error in years assignment"
 
@@ -34,8 +35,10 @@ allvars = pd.DataFrame.to_dict(vardf)
 
 #varlist = list(set(itertools.chain(*(allvars.values))))
 for k in allvars: 
+	#print k
+	#print allvars[k]
 	for l in allvars[k]:
-		if allvars[k][l] != 0: vardict.update(dict(zip([allvars[k][l]],[k+str(l)])))
+		if allvars[k][l] != 0 and allvars[k][l] not in vardict: vardict.update(dict(zip([allvars[k][l]],[k+str(l)])))
 
 # Isolate vars from main dataset
 print "Reading raw PSID data for all years"
@@ -54,6 +57,7 @@ output = output.drop('elderly', axis=1)
 # Rename column names
 print "Renaming columns"
 for v in output: 
+	if vardict[v] == 'id19681984': print vardict[v]
 	output.rename(columns={v: vardict[v]}, inplace=True)
 
 # Reorder column names
@@ -95,5 +99,3 @@ output = output.ix[:,cols]
 print "Outsheeting to " + ofpath
 output.to_csv(ofpath, index=False)
 
-'''
-''' 
