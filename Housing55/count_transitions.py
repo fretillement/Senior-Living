@@ -219,9 +219,11 @@ def movedWhere(locations):
 		else: 			
 			df = df.loc[df>0]
 			index = df.loc[df==1].index.tolist()
-			if len(index) > 0: trans.append(index[0])
+			if len(index) > 0: 
+				if 'shared' in df and df['shared'] == 1: trans.append('Shared '+index[0])
+				else: trans.append(index[0])
 			else: trans.append("No info") 
-
+	#print (years,trans)		
 	# Return the years and associated transition locs
 	return (years, trans)
 
@@ -230,7 +232,7 @@ def movedWhere(locations):
 # a dict with the number, ages, and types of transitions attached to the id.
 def numMoves(group):
 	# Get the housing vars of interest 
-	housingcols = namesdict.values() + ['inst', 'seniorh', 'year']
+	housingcols = namesdict.values() + ['shared', 'inst', 'seniorh', 'year']
 
 	# Count the number of transitions
 	numtrans = len(group.loc[(group['moved'] == 1)])
@@ -276,29 +278,49 @@ def ageElderlyTrans(row, lower, maxtrans):
 		basic.update(ageoutput)
 		basic.update(locoutput)
 		return pd.Series(basic)
-
+	
 	# If the obs has at least one transition, 	
 	else: 
 		# Keep only the individuals' transitions that took place at least at age lower
 		raw = row.loc[agecols].isin(range(lower, 400))
 		raw = row.loc[agecols].loc[raw].to_dict()
 		rawloc = row.loc[transcols].dropna().to_dict()
-
+		if len(raw) == 0: 
+			print row['age_trans1']
 		# For each transition present, look up the age and location and map it to the
 		# output dicts by index. (i.e. a person whose 1st transition after the age of 55 was actually
 		# the 5th transition of her life will be mapped to "trans1" and "age_trans1" keys.)	
 		ages = raw.values()
 		locs = rawloc.keys()
-
+	
+		
 		for k in ages: 
 			ageoutput['age_trans'+str(ages.index(k)+1)] = (k)
 		for k in locs:
 			locoutput['trans'+str(locs.index(k)+1)] = rawloc[k]
+		print ageoutput
+		print locoutput
 
+		'''
 		# Update the output dictionaries with age and location trans info, and return. 
 		basic.update(ageoutput)
 		basic.update(locoutput)
 		return pd.Series(basic)
+	'''
+
+def identifyShared(transdf):
+	transdf['shared'] = 0
+
+	# For years before 1983, attach a variable that identifies
+	# whether a person joined a shared household with family
+	transdf.loc[(transdf['year'] < 1983), 'shared'] = transdf['relhead'].isin([4, 5, 7]) 
+
+	# For years after 1983, attach shared variable
+	after = [40, 47, 48, 50, 57, 58, 66, 67, \
+			67, 68, 69, 72, 73, 74, 75, 95, 96, 97]
+	transdf.loc[(transdf['year'] >= 1983), 'shared'] = transdf['relhead'].isin(after)
+
+	return transdf
 
 
 if __name__ == "__main__":
@@ -307,7 +329,7 @@ if __name__ == "__main__":
 
 	# Get the date csv file suffix
 	datestrings = ['75-84', '85-99', '01-11']
-	#datestrings = ['75-84']
+	datestrings = ['75-84']
 	for date in datestrings: 
 		print "Processing transitions for years "+ date
 		
@@ -325,7 +347,7 @@ if __name__ == "__main__":
 		df = pd.read_csv(paneldata)
 		agecols = [x for x in df.columns.tolist() if 'age' in x]
 		age_df = df.loc[:, ['unique_pid']+agecols]
-		
+		'''
 		# Create transitions spreadsheet (stacked info)
 		print "Filling in age values"
 		tcounts = countTransitions(df, namesdict)
@@ -341,7 +363,7 @@ if __name__ == "__main__":
 		# Based on Ellwood and Kane (1990) 
 		print "Updating transitions dataframe with inst identification vars"
 		transitions = pd.read_csv(out)
-		namestub_list = ['numrooms', 'famsize', 'moved', 'whymoved', 'seniorh']
+		namestub_list = ['numrooms', 'famsize', 'moved', 'whymoved', 'seniorh', 'relhead']
 		#namestub_list = ['seniorh']
 		for namestub in namestub_list: 
 			print "		Adding " + namestub
@@ -350,32 +372,44 @@ if __name__ == "__main__":
 			fn = lambda x : varPull(x, namestub, namestub_df)
 			transitions = transitions.groupby('unique_pid').apply(fn)
 		transitions = identifyInst(transitions)
+		transitions = identifyShared(transitions)
 		transitions.to_csv(out)
 		print transitions.head(30)
-		
-		
+	
+
 		# Total up the number and type of moves
 		# Attach this to the original panel variables
 		print "Totaling up the number of moves and housing type of each move"
-		transitions = pd.read_csv(out)
-		transitions = identifyInst(transitions)		
+		transitions = pd.read_csv(out)	
 		gr = transitions.groupby('unique_pid')
 		transinfo = gr.apply(numMoves)
 		output = df.merge(transinfo, on='unique_pid')
+		#output = output.reset_index()
+		print output.columns.tolist()
 		output.to_csv(out_movespanel)
-
-		
+		'''
+	
 		# Isolate ONLY the people who had a transition after the age of 55
 		# Get the maximum number of transitions that took place
 		# after an individual was over the age of lower
+		
 		print "Isolating observations to only people who transitioned after the age of "+ str(lower)
 		panel = pd.read_csv(out_movespanel)
 		trans = panel.loc[panel['numtrans'] > 0, :] 
+
 		agevars = trans.loc[:, [x for x in panel.columns.tolist() if 'age_trans' in x]]
-		fn = lambda x: sum(x.isin(range(lower, 200)))
-		agevars['elderly'] = agevars.apply(fn, axis=1)
-		maxtrans = agevars['elderly'].max()
+		fn = lambda x: sum(x.isin(range(lower+1, 200)))
+		trans['elderly'] = agevars.apply(fn, axis=1)
+	
+		row = trans.ix[56, :]
+		#print row
+		maxtrans = trans['elderly'].max()
+		print ageElderlyTrans(row, lower, maxtrans)
+		
+
+		'''
+		
 		fn = lambda x : ageElderlyTrans(x, lower, maxtrans)
 		output = panel.apply(fn, axis=1)
 		output.to_csv(out_55pluspanel)
-		
+		'''
