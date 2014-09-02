@@ -52,31 +52,33 @@ def varPull(group, namestub, namestub_df):
 
 # Identify members of the panel who have been institutionalized
 # Based on method outlined in Ellwood and Kane (1990)
-def identifyInst(st_transdf):
+def identifyInst(transdf):
 	# Check if person has moved
-	moved = transitionsdf['moved'] == 1
+	moved = transdf['moved'] == 1
 
 	# Check for involuntary reasons for moving
-	reason = transitionsdf['whymoved'] == 7
+	reason = transdf['whymoved'] == 7
 
 	# Check number of rooms (must be <= 2) 
-	rooms = transitionsdf['numrooms'] <= 2
+	rooms = transdf['numrooms'] <= 2
 
 	# Check that the housing structure is "other"
-	hstructure = transitionsdf['Other'] == 1
+	hstructure = transdf['Other'] == 1
 
 	# Check for senior-housing self-report
-	seniorhousing = transitionsdf['seniorh'] == 1
+	if 'seniorh' in transdf: seniorhousing = transdf['seniorh'] == 1
+	else: seniorhousing = 0
 
 	# Check for institutionalization variable (1984-)
-	selfinst = (transitionsdf['tinst'] == 3) | (transitionsdf['tinst'] == 7) | (transitionsdf['tinst'] == 9)
+	if 'tinist' in transdf: selfinst = (transdf['tinst'] == 3) | (transdf['tinst'] == 7)
+	else: selfinst = 0
 
 	# Check that the hh size never grows past 1 before move
 	# hhsizegr = transition['famsize']
 
 	# Update and return the transitionsdf
-	transitionsdf['inst'] = (moved & reason & rooms & hstructure) | (seniorhousing) | (selfinst)
-	return transitionsdf
+	transdf['inst'] = (moved & reason & rooms & hstructure) | (seniorhousing) | (selfinst)
+	return transdf
 
 
 
@@ -204,13 +206,18 @@ def movedWhere(locations):
 	# For each year, append the year and location to a list
 	for pair in piv: 
 		(index, df) = pair
-		if df['seniorh'] == 1: 
+		years.append(int(df.ix['year'])) 
+		if (df['inst'] == 1) and (df['seniorh'] == 1): 
 			df = df.loc[df>0]
-			years.append(int(df.ix['year'])) 
 			trans.append('Senior housing')
-		else: 
+		if (df['inst'] == 1) and (df['seniorh'] != 1): 
+			df = df.loc[df>0]	
+			trans.append('Senior inst (EK1990)')
+		if (df['inst'] != 1) and (df['seniorh'] == 1): 
 			df = df.loc[df>0]
-			years.append(int(df.ix['year'])) 
+			trans.append('Senior housing')
+		else: 			
+			df = df.loc[df>0]
 			index = df.loc[df==1].index.tolist()
 			if len(index) > 0: trans.append(index[0])
 			else: trans.append("No info") 
@@ -223,7 +230,7 @@ def movedWhere(locations):
 # a dict with the number, ages, and types of transitions attached to the id.
 def numMoves(group):
 	# Get the housing vars of interest 
-	housingcols = namesdict.values() + ['seniorh', 'year']
+	housingcols = namesdict.values() + ['inst', 'seniorh', 'year']
 
 	# Count the number of transitions
 	numtrans = len(group.loc[(group['moved'] == 1)])
@@ -236,7 +243,7 @@ def numMoves(group):
 	for x in housingcols: 
 		if x not in group.columns.tolist(): group[x] = 0
 	locations = group.loc[(group['moved']==1), housingcols]
-	
+
 	# Map each transition to its location, esp. to senior housing 
 	transitions = movedWhere(locations)
 	n = len(transitions[1])
@@ -300,7 +307,7 @@ if __name__ == "__main__":
 
 	# Get the date csv file suffix
 	datestrings = ['75-84', '85-99', '01-11']
-	datestrings = ['75-84']
+	#datestrings = ['75-84']
 	for date in datestrings: 
 		print "Processing transitions for years "+ date
 		
@@ -328,33 +335,36 @@ if __name__ == "__main__":
 		transitions = tcounts.groupby('unique_pid').apply(fillAges)
 		transitions = transitions.loc[:, ['unique_pid', 'age', 'age2', 'year']+namesdict.values()]
 		transitions.to_csv(out)
+		
 
 		# Update the transitions dataframe with institutional housing identification vars 
 		# Based on Ellwood and Kane (1990) 
 		print "Updating transitions dataframe with inst identification vars"
 		transitions = pd.read_csv(out)
-		namestub_list = ['numrooms', 'famsize', 'moved', 'whymoved']
-		#namestub_list = ['tinst']
+		namestub_list = ['numrooms', 'famsize', 'moved', 'whymoved', 'seniorh']
+		#namestub_list = ['seniorh']
 		for namestub in namestub_list: 
 			print "		Adding " + namestub
-			namestubcols = [x for x in df.columns.tolist() if namestub in x]
+			namestubcols = [x for x in df.columns.tolist() if namestub in x and 't_'+namestub not in x]
 			namestub_df = df.loc[:, ['unique_pid']+namestubcols]
 			fn = lambda x : varPull(x, namestub, namestub_df)
 			transitions = transitions.groupby('unique_pid').apply(fn)
+		transitions = identifyInst(transitions)
 		transitions.to_csv(out)
 		print transitions.head(30)
-
-		'''
+		
+		
 		# Total up the number and type of moves
 		# Attach this to the original panel variables
 		print "Totaling up the number of moves and housing type of each move"
 		transitions = pd.read_csv(out)
+		transitions = identifyInst(transitions)		
 		gr = transitions.groupby('unique_pid')
 		transinfo = gr.apply(numMoves)
 		output = df.merge(transinfo, on='unique_pid')
 		output.to_csv(out_movespanel)
 
-
+		
 		# Isolate ONLY the people who had a transition after the age of 55
 		# Get the maximum number of transitions that took place
 		# after an individual was over the age of lower
@@ -368,4 +378,4 @@ if __name__ == "__main__":
 		fn = lambda x : ageElderlyTrans(x, lower, maxtrans)
 		output = panel.apply(fn, axis=1)
 		output.to_csv(out_55pluspanel)
-		'''
+		
