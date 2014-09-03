@@ -14,14 +14,15 @@ vfpath = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
 #dfpath = '/users/shruthivenkatesh/desktop/J177301.csv'
 dfpath = 'M:/Senior Living/Data/PSID Data/J177301.csv'
 #ofpath = '/users/shruthivenkatesh/desktop/elderly_panel00-11.csv'
-ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel75-84.csv'
+#ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel75-84.csv'
+ofpath = 'M:/Senior Living/Data/PSID Data/Panel/over25.csv'
 
 # Choose age limit and timespan 
-lower = 55
+lower = 25
 #years = range(2001,2012,2)
 #years = range(2001,2012, 2)
-years = range(1975, 1985)
-#years = range(1975, 1999) + range(1999, 2012, 2)
+#years = range(1975, 1985)
+years = range(1975, 1999) + range(1999, 2012, 2)
 #skip = range(1, min(years) - 1968 +1) if min(years) <= 1999 else "Error in years assignment"
 
 # Find varlabels across time for years above
@@ -39,7 +40,7 @@ for k in allvars:
 	#print allvars[k]
 	for l in allvars[k]:
 		if allvars[k][l] != 0 and allvars[k][l] not in vardict: vardict.update(dict(zip([allvars[k][l]],[k+str(l)])))
-
+#print [x for x in vardict.values() if 'personnum' in x]
 # Isolate vars from main dataset
 print "Reading raw PSID data for all years"
 master = pd.read_csv(dfpath, usecols=vardict.keys())
@@ -62,8 +63,7 @@ for v in output:
 
 # Reorder column names
 header = output.columns.tolist()
-for h in header:
-	print h
+
 
 containedyrs = map(int, vardf.index.tolist())
 
@@ -87,12 +87,15 @@ cols = ['unique_pid']+ ['unique_pid2'] + ['id1968'+str(max(containedyrs))]+ ['pe
 # Create unique id
 print "Creating unique ID var"
 output.reset_index(inplace=True)
-output['unique_pid2'] = output['personnum'+str(max(containedyrs))].map(str)+ "_" + output['id1968'+str(max(containedyrs))].map(str)
+for x in output.columns.tolist(): 
+	if 'personnum' in x: personnum = x
+	if 'id1968' in x: idvar = x
+output['unique_pid2'] = output[personnum].map(str)+ "_" + output[idvar].map(str)
 output['unique_pid'] = output.index+1
 output = output.drop('index', axis=1)
-print len(cols)
-print len(header)
-print len(output.columns.tolist())
+#print len(cols)
+#print len(header)
+#print len(output.columns.tolist())
 output = output.ix[:,cols]
 
 # Outsheet 

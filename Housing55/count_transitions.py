@@ -1,3 +1,4 @@
+from __future__ import division
 import pandas as pd 
 import os
 import gc
@@ -160,8 +161,11 @@ def fillAges(group):
 	first = group['age'].loc[group['age']>0].first_valid_index()
 	last = group['age'].loc[group['age']>0].last_valid_index()	
 	l = len(group['age'].index)
-	
+	print (first, last, l, group['unique_pid'].ix[0])
 	# Check for missing observations. If none missing return same age values.
+	if group['age'].sum() == 0: 
+		group['age2'] = 0
+		return group
 	if (first > 0) and (last+1 < l): 
 		group['age2'] = len(group.index)*[999]
 		return group
@@ -281,32 +285,21 @@ def ageElderlyTrans(row, lower, maxtrans):
 	
 	# If the obs has at least one transition, 	
 	else: 
-		# Keep only the individuals' transitions that took place at least at age lower
-		raw = row.loc[agecols].isin(range(lower, 400))
-		raw = row.loc[agecols].loc[raw].to_dict()
-		rawloc = row.loc[transcols].dropna().to_dict()
-		if len(raw) == 0: 
-			print row['age_trans1']
 		# For each transition present, look up the age and location and map it to the
 		# output dicts by index. (i.e. a person whose 1st transition after the age of 55 was actually
 		# the 5th transition of her life will be mapped to "trans1" and "age_trans1" keys.)	
-		ages = raw.values()
-		locs = rawloc.keys()
-	
-		
-		for k in ages: 
-			ageoutput['age_trans'+str(ages.index(k)+1)] = (k)
-		for k in locs:
-			locoutput['trans'+str(locs.index(k)+1)] = rawloc[k]
-		print ageoutput
-		print locoutput
-
-		'''
-		# Update the output dictionaries with age and location trans info, and return. 
+		ages = row.loc[agecols].dropna()
+		locs = row.loc[transcols].dropna()
+		# ages and locs are the same length!!! 
+		for k in range(0, len(ages)):
+			agelab = 'age_trans'+str(int(k+1))
+			loclab = 'trans' + str(int(k+1))
+			ageoutput[agelab] = ages[k]
+			locoutput[loclab] = locs[k]
+		# Update the basic info dict and return as series
 		basic.update(ageoutput)
 		basic.update(locoutput)
-		return pd.Series(basic)
-	'''
+		return pd.Series(basic)	
 
 def identifyShared(transdf):
 	transdf['shared'] = 0
@@ -322,23 +315,33 @@ def identifyShared(transdf):
 
 	return transdf
 
+def computeTransShare(agegroup):
+	age = agegroup['age2'].iloc[0]
+	moved = agegroup.loc[(agegroup['moved'] == 1), 'moved'].sum()
+	notmoved = agegroup.loc[(agegroup['moved'] == 5), 'moved'].sum()
+	share = moved/ notmoved
+	numpeople = len(agegroup.index)
+	output = pd.DataFrame({'age2': age, 'sh_trans':share, 'numobs':numpeople}, index = [0])
+	return output
 
 if __name__ == "__main__":
 	# Set lower age limit
 	lower = 55
 
 	# Get the date csv file suffix
-	datestrings = ['75-84', '85-99', '01-11']
+	#datestrings = ['75-84', '85-99', '01-11']
 	datestrings = ['75-84']
 	for date in datestrings: 
 		print "Processing transitions for years "+ date
 		
 		# Set filepaths
-		out = "M:/Senior Living/Data/PSID Data/Panel/transitions" + date + ".csv"
+		#out = "M:/Senior Living/Data/PSID Data/Panel/transitions" + date + ".csv"
 		#out = "/Users/ShruthiVenkatesh/Desktop/transitions00-11.csv"
+		out = 'M:/Senior Living/Data/PSID Data/Panel/transitions25.csv'
 		#panel_code = "M:/Senior Living/Code/Senior-living/Housing55/get_panel.py"
 		#paneldata ="/users/ShruthiVenkatesh/Desktop/elderly_panel00-11.csv"
-		paneldata = "M:/Senior Living/Data/PSID Data/Panel/elderly_panel" + date + ".csv"
+		paneldata = 'M:/Senior Living/Data/PSID Data/Panel/over25.csv'
+		#paneldata = "M:/Senior Living/Data/PSID Data/Panel/elderly_panel" + date + ".csv"
 		out_movespanel = "M:/Senior Living/Data/PSID Data/Panel/elderly_panelv2_" + date + ".csv"
 		out_55pluspanel = "M:/Senior Living/Data/PSID Data/Panel/55plus_trans" + date + ".csv"
 
@@ -351,32 +354,46 @@ if __name__ == "__main__":
 		# Create transitions spreadsheet (stacked info)
 		print "Filling in age values"
 		tcounts = countTransitions(df, namesdict)
+		tcounts.to_csv(out, index=False)
+		print "Done counting transitions"
 		fn = lambda x: ageLookup(x, age_df)
 		tcounts['age'] = tcounts.apply(fn, axis=1)
+		tcounts.to_csv(out, index=False)
+		print "Done looking up ages"
+		
+		tcounts = pd.read_csv(out)
 		tcounts.set_index('unique_pid', inplace=True, drop=False)
 		transitions = tcounts.groupby('unique_pid').apply(fillAges)
 		transitions = transitions.loc[:, ['unique_pid', 'age', 'age2', 'year']+namesdict.values()]
 		transitions.to_csv(out)
 		
-
+		
 		# Update the transitions dataframe with institutional housing identification vars 
 		# Based on Ellwood and Kane (1990) 
 		print "Updating transitions dataframe with inst identification vars"
 		transitions = pd.read_csv(out)
-		namestub_list = ['numrooms', 'famsize', 'moved', 'whymoved', 'seniorh', 'relhead']
-		#namestub_list = ['seniorh']
+		#namestub_list = ['numrooms', 'famsize', 'moved', 'whymoved', 'seniorh', 'relhead']
+		namestub_list = ['moved']
 		for namestub in namestub_list: 
 			print "		Adding " + namestub
 			namestubcols = [x for x in df.columns.tolist() if namestub in x and 't_'+namestub not in x]
 			namestub_df = df.loc[:, ['unique_pid']+namestubcols]
 			fn = lambda x : varPull(x, namestub, namestub_df)
 			transitions = transitions.groupby('unique_pid').apply(fn)
-		transitions = identifyInst(transitions)
-		transitions = identifyShared(transitions)
-		transitions.to_csv(out)
+		print "		Identifying institutions"
+		#transitions = identifyInst(transitions)
+		print "		Identifying shared households"
+		#transitions = identifyShared(transitions)
+		transitions.to_csv(out, index=False)
 		print transitions.head(30)
-	
+		'''
+		transitions = pd.read_csv(out)
+		gr = transitions.groupby('age2')
+		output = gr.apply(computeTransShare)
+		output = output.loc[output['age2'].isin(range(25, 100)), :]
+		output.to_csv("M:/Senior Living/Data/PSID Data/share_trans25.csv", index=False)
 
+		'''
 		# Total up the number and type of moves
 		# Attach this to the original panel variables
 		print "Totaling up the number of moves and housing type of each move"
@@ -387,29 +404,20 @@ if __name__ == "__main__":
 		#output = output.reset_index()
 		print output.columns.tolist()
 		output.to_csv(out_movespanel)
-		'''
+		
 	
 		# Isolate ONLY the people who had a transition after the age of 55
 		# Get the maximum number of transitions that took place
-		# after an individual was over the age of lower
-		
+		# after an individual was over the age of lower		
 		print "Isolating observations to only people who transitioned after the age of "+ str(lower)
 		panel = pd.read_csv(out_movespanel)
-		trans = panel.loc[panel['numtrans'] > 0, :] 
-
-		agevars = trans.loc[:, [x for x in panel.columns.tolist() if 'age_trans' in x]]
-		fn = lambda x: sum(x.isin(range(lower+1, 200)))
-		trans['elderly'] = agevars.apply(fn, axis=1)
-	
-		row = trans.ix[56, :]
-		#print row
-		maxtrans = trans['elderly'].max()
-		print ageElderlyTrans(row, lower, maxtrans)
-		
-
-		'''
-		
+		#trans = panel.loc[panel['numtrans'] > 0, :] 
+		age_df = panel.loc[:, [x for x in panel.columns.tolist() if 'age_trans' in x]]
+		fn = lambda x: sum(x.isin(range(lower, 400)))
+		panel['elderly'] = age_df.apply(fn, axis=1)
+		agequals = panel.loc[panel['elderly']>0, :]
+		maxtrans = agequals['elderly'].max()		
 		fn = lambda x : ageElderlyTrans(x, lower, maxtrans)
-		output = panel.apply(fn, axis=1)
-		output.to_csv(out_55pluspanel)
+		output = agequals.apply(fn, axis=1)
+		output.to_csv(out_55pluspanel, index=False)
 		'''
