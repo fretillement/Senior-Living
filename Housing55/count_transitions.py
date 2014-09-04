@@ -94,42 +94,33 @@ def totalTransitions(df):
 def countTransitions(df, namesdict): 
 	# Takes a df with housing structure vars and person id
 	# Returns df with dummies for each type of transition entered
-
 	# Stack obs in transition df by unique_pid 
 	hstructure_cols = [x for x in df.columns.tolist() if 'hstructure' in x]
 	hstructure = df.loc[:, hstructure_cols+['unique_pid']]
 	st = pd.DataFrame(hstructure.set_index('unique_pid').stack(), columns=['hstructure'])
-
 	# Reset index for pivoting. Creates 'index' var and removes hierarchical indexing
 	st.reset_index(inplace=True)
 	st.reset_index(inplace=True)
-
 	# Pivot the observations 
 	piv = st.pivot(index='index', columns='hstructure', values='unique_pid')
 	for x in namesdict.keys():
 		if x not in piv: 
 			piv[x] = 0
-
 	# Rename the columns
 	piv = piv.rename(columns=namesdict)
-
 	# Convert the info in pivoted df to dummy vars
 	piv['unique_pid'] = piv.max(axis=1, skipna=True)
 	piv.fillna(0, inplace=True)
 	#piv = piv.drop(labels=[0], axis=1)
-
 	pivcols = [x for x in namesdict.values() if x in piv.columns.tolist()]
 	for x in namesdict.values(): 
 		if x not in piv: print x
-
 	piv[piv.loc[:, pivcols]>0] = 1
-	
 	# Add a year variable
 	st['year'] = st['level_1'].str[10:].astype(float)
 	apiv = st.pivot(index='index', columns='hstructure', values='year')
 	apiv['year'] = apiv.max(axis=1, skipna=True)
-	piv['year'] = pd.Series(apiv['year'])			 
-	
+	piv['year'] = pd.Series(apiv['year'])			 	
 	# Return	
 	return piv 
 
@@ -161,13 +152,16 @@ def fillAges(group):
 	first = group['age'].loc[group['age']>0].first_valid_index()
 	last = group['age'].loc[group['age']>0].last_valid_index()	
 	l = len(group['age'].index)
-	print (first, last, l, group['unique_pid'].ix[0])
+	#print (first, last, l, group['unique_pid'].ix[0])
 	# Check for missing observations. If none missing return same age values.
 	if group['age'].sum() == 0: 
 		group['age2'] = 0
 		return group
-	if (first > 0) and (last+1 < l): 
+	if (first > 0) and (last+1 < l) and first != last: 
 		group['age2'] = len(group.index)*[999]
+		return group
+	if (first > 0) and (last+1 < l) and first == last: 
+		print group
 		return group
 	if (first + last + 1 == l):
 		group['age2'] = group['age']
@@ -317,11 +311,12 @@ def identifyShared(transdf):
 
 def computeTransShare(agegroup):
 	age = agegroup['age2'].iloc[0]
-	moved = agegroup.loc[(agegroup['moved'] == 1), 'moved'].sum()
-	notmoved = agegroup.loc[(agegroup['moved'] == 5), 'moved'].sum()
-	share = moved/ notmoved
-	numpeople = len(agegroup.index)
-	output = pd.DataFrame({'age2': age, 'sh_trans':share, 'numobs':numpeople}, index = [0])
+	moved = (agegroup['indweight'] * agegroup.loc[(agegroup['moved'] == 1), 'moved']).sum()
+	#notmoved = agegroup.loc[(agegroup['moved'] == 5), 'moved'].sum()
+	share = np.true_divide(moved, agegroup['indweight'].sum())
+	share2 = np.true_divide(len(agegroup.loc[(agegroup['moved'] == 1), 'moved'].index), len(agegroup.index))
+	numpeople = agegroup['indweight'].sum()
+	output = pd.DataFrame({'age2': age, 'sh_trans':share, 'numobs':numpeople, 'sh_trans2': share2, 'numobs2': len(agegroup.index)}, index = [0])
 	return output
 
 if __name__ == "__main__":
@@ -362,6 +357,7 @@ if __name__ == "__main__":
 		print "Done looking up ages"
 		
 		tcounts = pd.read_csv(out)
+		tcount = tcounts.loc[tcounts['age'] < 200, :]
 		tcounts.set_index('unique_pid', inplace=True, drop=False)
 		transitions = tcounts.groupby('unique_pid').apply(fillAges)
 		transitions = transitions.loc[:, ['unique_pid', 'age', 'age2', 'year']+namesdict.values()]
@@ -379,7 +375,8 @@ if __name__ == "__main__":
 			namestubcols = [x for x in df.columns.tolist() if namestub in x and 't_'+namestub not in x]
 			namestub_df = df.loc[:, ['unique_pid']+namestubcols]
 			fn = lambda x : varPull(x, namestub, namestub_df)
-			transitions = transitions.groupby('unique_pid').apply(fn)
+			piv = piv.groupby('unique_pid').apply(fn)
+			#transitions = transitions.groupby('unique_pid').apply(fn)
 		print "		Identifying institutions"
 		#transitions = identifyInst(transitions)
 		print "		Identifying shared households"

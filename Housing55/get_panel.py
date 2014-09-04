@@ -40,20 +40,19 @@ for k in allvars:
 	#print allvars[k]
 	for l in allvars[k]:
 		if allvars[k][l] != 0 and allvars[k][l] not in vardict: vardict.update(dict(zip([allvars[k][l]],[k+str(l)])))
+
 #print [x for x in vardict.values() if 'personnum' in x]
 # Isolate vars from main dataset
 print "Reading raw PSID data for all years"
 master = pd.read_csv(dfpath, usecols=vardict.keys())
-
 
 # Keep only obs past the age of lower
 # Get a set of age codes that we should be looking for 
 agecodes = vardf['age'].tolist()
 agesonly = master.loc[:, agecodes]
 agesonly = agesonly > lower
-master['elderly'] = agesonly.sum(axis=1)
-output = master.loc[(master['elderly'] > 0), :]
-output = output.drop('elderly', axis=1)
+output = master.loc[(agesonly.sum(axis=1) > 0), :]
+
 
 # Rename column names
 print "Renaming columns"
@@ -102,3 +101,4 @@ output = output.ix[:,cols]
 print "Outsheeting to " + ofpath
 output.to_csv(ofpath, index=False)
 
+'''
