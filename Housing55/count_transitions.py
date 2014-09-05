@@ -152,7 +152,7 @@ def fillAges(group):
 	first = group['age'].loc[group['age']>0].first_valid_index()
 	last = group['age'].loc[group['age']>0].last_valid_index()	
 	l = len(group['age'].index)
-	#print (first, last, l, group['unique_pid'].ix[0])
+	#print group['unique_pid2'].iloc[0]
 	# Check for missing observations. If none missing return same age values.
 	if group['age'].sum() == 0: 
 		group['age2'] = 0
@@ -168,7 +168,8 @@ def fillAges(group):
 		return group
 	if (first + last + 1 > l):
 		# If missing values, call algo to fill in values
-		group['age2'] = calcAges(group, first, last, l)
+		#print len(group.index)
+		group['age2'] = calcAges(group, first, last, l)	
 		return group
 
 def calcAges(gr, first, last, l): 	
@@ -186,10 +187,20 @@ def calcAges(gr, first, last, l):
 
 		# If the age is 999, fill in all values as 999 
 		if tempage == 999: tempage = 0 + tempage
-		o = [tempage]+o
+		if tempage < 0: o = [0] + o
+		else: o = [tempage]+o
 		first -= 1
+	if first == 0: 
+		tempage = tempage - (thisyr - prevyr)
+		print tempage
+		o = [tempage]+o
 
 	# Return a list of filled in ages 
+	if len(o) != len(gr.index): 
+		print "Mismatched age values"
+		print {'age2': o}
+		print {'age': list(gr['age'].values.ravel())}
+		print len(o), len(gr)
 	return o
 
 # Takes a df of location vars for a given person, 
