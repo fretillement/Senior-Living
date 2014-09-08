@@ -40,8 +40,7 @@ def calcFirstDiffs(df):
 if __name__ == "__main__":
 	datestrings = ['75-84', '85-99', '01-11']
 	#datestrings = ['75-84']
-	for date in datestrings: 
-		print "Processing file for years "+ date
+	for date in datestrings:
 		
 		# Set filepaths
 		f_panel =  "M:/Senior Living/Data/PSID Data/Panel/55plus_trans" + date + ".csv"

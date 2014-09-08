@@ -15,15 +15,16 @@ vfpath = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
 dfpath = 'M:/Senior Living/Data/PSID Data/J177301.csv'
 #ofpath = '/users/shruthivenkatesh/desktop/elderly_panel00-11.csv'
 #ofpath = 'M:/Senior Living/Data/PSID Data/Panel/elderly_panel75-84.csv'
-ofpath = 'M:/Senior Living/Data/PSID Data/Panel/over25.csv'
+ofpath = 'M:/Senior Living/Data/PSID Data/Panel/over25_68-75.csv'
 
 # Choose age limit and timespan 
 lower = 25
 #years = range(2001,2012,2)
 #years = range(2001,2012, 2)
 #years = range(1975, 1985)
-years = range(1975, 1999) + range(1999, 2012, 2)
+#years = range(1975, 1999) + range(1999, 2012, 2)
 #skip = range(1, min(years) - 1968 +1) if min(years) <= 1999 else "Error in years assignment"
+years = range(1968,1976)
 
 # Find varlabels across time for years above
 vardict = {}
@@ -100,5 +101,3 @@ output = output.ix[:,cols]
 # Outsheet 
 print "Outsheeting to " + ofpath
 output.to_csv(ofpath, index=False)
-
-'''

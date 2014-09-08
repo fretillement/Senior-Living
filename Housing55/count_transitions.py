@@ -98,16 +98,20 @@ def countTransitions(df, namesdict):
 	hstructure_cols = [x for x in df.columns.tolist() if 'hstructure' in x]
 	hstructure = df.loc[:, hstructure_cols+['unique_pid']]
 	st = pd.DataFrame(hstructure.set_index('unique_pid').stack(), columns=['hstructure'])
+	
 	# Reset index for pivoting. Creates 'index' var and removes hierarchical indexing
 	st.reset_index(inplace=True)
 	st.reset_index(inplace=True)
+	
 	# Pivot the observations 
 	piv = st.pivot(index='index', columns='hstructure', values='unique_pid')
 	for x in namesdict.keys():
 		if x not in piv: 
 			piv[x] = 0
+	
 	# Rename the columns
 	piv = piv.rename(columns=namesdict)
+	
 	# Convert the info in pivoted df to dummy vars
 	piv['unique_pid'] = piv.max(axis=1, skipna=True)
 	piv.fillna(0, inplace=True)
@@ -116,6 +120,7 @@ def countTransitions(df, namesdict):
 	for x in namesdict.values(): 
 		if x not in piv: print x
 	piv[piv.loc[:, pivcols]>0] = 1
+	
 	# Add a year variable
 	st['year'] = st['level_1'].str[10:].astype(float)
 	apiv = st.pivot(index='index', columns='hstructure', values='year')
@@ -175,20 +180,16 @@ def calcSandwichAges(gr, first, last, l):
 		thisage = thisage + (nextyr - thisyr)
 		o.append(thisage)
 		first = first + 1
-	#print gr['age']
-	#print o
 	return o
 
 def calcOutsideAges(gr, first, last, l): 
 	# Calculate missing ages that are NOT sandwiched
-	#o = gr['age'].loc[gr['age'].index >= first].tolist()
 	o = [gr.loc[first, 'age']]
 	thisage = gr.ix[first, 'age']
 	backward = first 
 	while backward > 0: 
 		thisyr = gr.ix[backward, 'year']
 		prevyr = gr.ix[backward-1, 'year']
-		#print (thisage, thisyr-prevyr)
 		thisage = thisage - (thisyr - prevyr)
 		o = [thisage] + o
 		backward = backward - 1 
@@ -202,36 +203,6 @@ def calcOutsideAges(gr, first, last, l):
 		forward = forward +1 
 	return o 
 
-
-	'''
-	tempage = int(gr['age'][first])
-
-	while (first > 0):
-		# While there are missing values, iterate over the empty values 
-		thisyr = gr.ix[first ,'year']
-		prevyr = gr.ix[first-1, 'year']
-
-		# Calculate age by subtracting difference between years from current age 
-		tempage = tempage - (thisyr-prevyr)
-
-		# If the age is 999, fill in all values as 999 
-		if tempage == 999: tempage = 0 + tempage
-		if tempage < 0: o = [0] + o
-		else: o = [tempage]+o
-		first -= 1
-	if first == 0: 
-		tempage = tempage - (thisyr - prevyr)
-		print tempage
-		o = [tempage]+o
-
-	# Return a list of filled in ages 
-	if len(o) != len(gr.index): 
-		print "Mismatched age values"
-		print {'age2': o}
-		print {'age': list(gr['age'].values.ravel())}
-		print len(o), len(gr)
-	return o
-	'''
 
 # Takes a df of location vars for a given person, 
 # and returns a list of years and transition locations
