@@ -145,36 +145,65 @@ def ageLookup(row, age_df):
 # The next two functions fill in missing age observations
 # based on a single age provided and the year variable
 def fillAges(group): 
-	# Print the person's id
-	#print group['unique_pid'].get_values()[0]
+	#print group['unique_pid2'].iloc[0]
 	group.reset_index(inplace=True, drop=True)
-
 	first = group['age'].loc[group['age']>0].first_valid_index()
 	last = group['age'].loc[group['age']>0].last_valid_index()	
 	l = len(group['age'].index)
-	#print group['unique_pid2'].iloc[0]
 	# Check for missing observations. If none missing return same age values.
-	if group['age'].sum() == 0: 
+	if (group['age'].sum() == 0): # If all age values are 0, return age2 = 0
 		group['age2'] = 0
 		return group
-	if (first > 0) and (last+1 < l) and first != last: 
-		group['age2'] = len(group.index)*[999]
+	if (first == last):  # If there is only one obs in this group, return that age 
+		group['age2'] = group['age'] 
 		return group
-	if (first > 0) and (last+1 < l) and first == last: 
-		print group
+	if (first == 0) & (last+1 == l): 
+		group['age2'] = calcSandwichAges(group, first, last, l)
 		return group
-	if (first + last + 1 == l):
-		group['age2'] = group['age']
-		return group
-	if (first + last + 1 > l):
-		# If missing values, call algo to fill in values
-		#print len(group.index)
-		group['age2'] = calcAges(group, first, last, l)	
+	if (first > 0) | (last+1 < l): 
+		group['age2'] = calcOutsideAges(group, first, last, l)
 		return group
 
-def calcAges(gr, first, last, l): 	
+
+def calcSandwichAges(gr, first, last, l): 	
 	# Calculate age based on the first and last complete age observation
-	o = gr['age'].loc[gr['age']>0].tolist()
+	o = [gr['age'].iloc[0]]
+	thisage = gr.ix[first, 'age']
+	while first < last: 
+		thisyr = gr.ix[first, 'year']
+		nextyr = gr.ix[first+1, 'year']	
+		thisage = thisage + (nextyr - thisyr)
+		o.append(thisage)
+		first = first + 1
+	#print gr['age']
+	#print o
+	return o
+
+def calcOutsideAges(gr, first, last, l): 
+	# Calculate missing ages that are NOT sandwiched
+	#o = gr['age'].loc[gr['age'].index >= first].tolist()
+	o = [gr.loc[first, 'age']]
+	thisage = gr.ix[first, 'age']
+	backward = first 
+	while backward > 0: 
+		thisyr = gr.ix[backward, 'year']
+		prevyr = gr.ix[backward-1, 'year']
+		#print (thisage, thisyr-prevyr)
+		thisage = thisage - (thisyr - prevyr)
+		o = [thisage] + o
+		backward = backward - 1 
+	thisage = gr.ix[first, 'age']
+	forward = first   
+	while forward+1 < l : 
+		thisyr = gr.ix[forward, 'year']
+		nextyr = gr.ix[forward+1, 'year']		
+		thisage = thisage + (nextyr - thisyr)
+		o.append(thisage)
+		forward = forward +1 
+	return o 
+
+
+	'''
 	tempage = int(gr['age'][first])
 
 	while (first > 0):
@@ -202,6 +231,7 @@ def calcAges(gr, first, last, l):
 		print {'age': list(gr['age'].values.ravel())}
 		print len(o), len(gr)
 	return o
+	'''
 
 # Takes a df of location vars for a given person, 
 # and returns a list of years and transition locations
