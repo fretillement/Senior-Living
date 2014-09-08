@@ -6,49 +6,11 @@ import gc
 var_file = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
 raw_file = 'M:/Senior Living/Data/PSID Data/J177301.csv'
 
-# Set namestub list 
-namestub_list = ['id1968', 'personnum', 'hstructure', 'age', 'htenure', 'moved']
-
-# Get codes of age, moved, hstructure, tenure and id variables 
-def getCodes(varfile, namestub): 
-	values = pd.read_csv(varfile, usecols = [namestub, 'year']).dropna()
-	years = map(int, values['year'].tolist())
-	codes = values[namestub].tolist()
-	return [years, codes]
-
-def readRaw(rawfile, varfile, namestub_list=namestub_list): 
-	cols = []
-	for n in namestub_list: 
-		cols = getCodes(varfile, n)[1] + cols
-	raw = pd.read_csv(rawfile, usecols=cols)
-	# Keep only obs >= 25 at any given point 
-	ages = getCodes(varfile, 'age')[1]
-	raw['25plus'] = (raw.loc[:, ages] >= 25).sum(axis=1) > 0 
-	return raw
-
-def sepFrames(rawfile, varfile, n): 
-	raw = readRaw(rawfile, varfile)
-	codes = getCodes(varfile, n)[1]
-	ids = list(set(getCodes(varfile, 'id1968')[1])) + list(set(getCodes(varfile, 'personnum')[1]))
-	sep = raw.loc[(raw['25plus'] > 0), codes + ids]
-	return sep
-
-def genUniqueID(sep): 
-	sep['unique_pid2'] = sep['ER30001'].map(str)+ "_" + sep['ER30002'].map(str)
-	return sep 
-
-def renameSep(sep, namestub):
- 
-
-
-'''
+# Get codes of age, moved and id variables 
 ages =  list(pd.read_csv(var_file, usecols=['age']).values.ravel())
 idvars = pd.read_csv(var_file, usecols = ['id1968', 'personnum']).drop_duplicates()
 moved = list( pd.read_csv(var_file, usecols = ['moved']).values.ravel())
-hstructure = list(pd.read_csv(var_file, usecols = ['hstructure'].values.ravel()))
-htenure = list(pd.read_csv(var_file, usecols = ['htenure']).values.ravel())
 years = map(int, list(pd.read_csv(var_file, usecols=['year']).values.ravel()))
-
 movedlabs = ['moved'+str(y) for y in years]
 moveddict = dict(zip(moved, years))
 yearsdict = dict(zip(ages, years))
@@ -61,16 +23,12 @@ raw = pd.read_csv(raw_file, usecols=cols)
 raw['25plus'] = (raw.loc[:, ages] >= 25).sum(axis=1) > 0 
 
 # Seperate age variables from moving variables: place in seperate dataframes 
-agerq = raw.loc[(raw['25plus'] > 0), ages + list(idvars.values.ravel())] 
+agerq = raw.loc[(raw['25plus'] > 0), ages+list(idvars.values.ravel())] 
 mov = raw.loc[(raw['25plus'] > 0), moved + list(idvars.values.ravel())]
-struct = raw.loc[(raw['25plus'] > 0), hstructure + list(idvars.values.ravel())]
-tenure = raw.loc[(raw['25plus'] > 0), htenure + list(idvars.values.ravel())]
 
 # Generate a unique person id number 
 mov['unique_pid2'] = mov['ER30001'].map(str)+ "_" + mov['ER30002'].map(str)
 agerq['unique_pid2'] = agerq['ER30001'].map(str)+ "_" + agerq['ER30002'].map(str)
-struct['unique_pid2'] = struct['ER30001'].map(str)+ "_" + struct['ER30002'].map(str)
-tenure['unique_pid2'] = tenure['ER30001'].map(str)+ "_" + tenure['ER30002'].map(str)
 
 # Stack the panel datasets (each person shows up multiple times)
 yearsdict.update(moveddict)
@@ -84,7 +42,9 @@ merged = st_agerq.merge(st_moved, how='left', right_index=True, left_index=True)
 merged.reset_index(inplace=True)
 merged.to_csv("M:/Senior Living/data/psid data/ages_merged_68-75.csv")
 
-# Read in csv of stacked panel data and groupby person's id
+
+
+# Read in csv and groupby person's id
 fpath = "M:/senior living/data/psid data/ages_merged_68-75.csv"
 #fpath = "/users/shruthivenkatesh/desktop/senior-living-proj/data/edited_vars.csv"
 merged = pd.read_csv(fpath)
@@ -114,7 +74,6 @@ def getMissingAges(gr):
 		gr.loc[sandwich_mask, ['age', 'moved']] = 0
 		return gr 
 
-# Fill in ages using fillAges function from count_observations
 def fillMissingAges(gr): 
 	gr = getMissingAges(gr)	
 	if gr.empty: 
@@ -123,7 +82,6 @@ def fillMissingAges(gr):
 		gr = fillAges(gr)
 		return gr 
 
-# Fill in missing moved observations (if age exists)
 def fillMissingMoved(gr): 
 	gr = fillMissingAges(gr)
 	if gr.empty: 
@@ -135,15 +93,19 @@ def fillMissingMoved(gr):
 		gr = gr.loc[(gr['age2']>0), :]
 		return gr
 
+def fixAgeError(gr): 
+	if 999 in gr['age'].tolist(): 
+		print gr['unique_pid2'].iloc[0]
+		gr.loc[(gr['age'] == 999), 'age'] = 0
+		gr = fillMissingMoved(gr)	
+		return gr 
+	else: 
+		return gr  
 
-
-
-
-
-
-#output = gr_merged.apply(fillMissingMoved)
-#print "**Writing**"
-#output.to_csv("M:/Senior living/data/psid data/edited_vars_68-75.csv")
+output = gr_merged.apply(fillMissingMoved)
+#output = gr_merged.apply(fixAgeError)
+print "**Writing**"
+output.to_csv("M:/Senior living/data/psid data/edited_vars_68-75.csv")
 #output.to_csv("/users/shruthivenkatesh/desktop/senior-living-proj/data/edited_vars.csv")
 #print fixMissing(test)
 #test= fillMissingAges(test)
@@ -152,4 +114,3 @@ def fillMissingMoved(gr):
 
 gc.collect()
 
-'''
