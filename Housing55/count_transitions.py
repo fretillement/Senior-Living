@@ -150,7 +150,6 @@ def ageLookup(row, age_df):
 # The next two functions fill in missing age observations
 # based on a single age provided and the year variable
 def fillAges(group): 
-	#print group['unique_pid2'].iloc[0]
 	group.reset_index(inplace=True, drop=True)
 	first = group['age'].loc[group['age']>0].first_valid_index()
 	last = group['age'].loc[group['age']>0].last_valid_index()	
