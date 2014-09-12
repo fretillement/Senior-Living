@@ -123,41 +123,45 @@ def renameHstructure(row, hstruct_dict=hstruct_dict):
 	else: 
 		row.loc['hstructure'] = hstruct_dict[row.loc['hstructure']]
 		row.loc['movedto'] = row.loc['hstructure']
-
 		return row
 
-def get4Housing(df): 
-	
+def markShared(df): 
+	df['Housing Category'] = 0
+	pre83_mask = ((df['year'] < 1983))
+	post83_mask = ((df['year'] >= 1983))
+	shared_mask = ((pre83_mask & (~df['relhead'].isin([1,2,8]))) | (post83_mask & (~df['relhead'].isin([10,20,90]))))
+	df.loc[shared_mask, 'Housing Category'] = 'Shared'
+	return df 
 
+def markSFO(df): 
+	df = markShared(df)
+	sf_mask = ((df['hstructure'].isin([1])))
+	owner_mask = ((df['htenure'].isin([1])))
+	notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
+	sfo_mask =  ((sf_mask & owner_mask & notshared_mask))
+	df.loc[sfo_mask, 'Housing Category'] = 'SFO'
+	return df
 
+def markMFR(df):
+ 	df = markSFO(df)
+ 	notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
+ 	mf_mask = ((df['hstructure'].isin([2, 3, 6, 7])))
+ 	renter_mask = ((df['htenure'].isin([5])))
+ 	mfr_mask = ((mf_mask & renter_mask & notshared_mask))
+ 	df.loc[mfr_mask, 'Housing Category'] = 'MFR'
+ 	return df
 
-#df = stackdf('age')
-#for v in vars_list:
-#	print v
-#	sep = stackdf(v) 
-#	df = df.merge(sep, how='left', right_index=True, left_index=True)
-#df.to_csv("M:/Senior Living/data/psid data/allvars_st.csv", index=True)
-#df = pd.read_csv("M:/Senior Living/data/psid data/allvars_st.csv")
-'''Group the df'''
-#df = df.groupby('unique_pid').apply(fillMissingAges)
-#df = df.rename(columns= {'Unnamed: 1': 'year'})
-#print "Writing"
-#df.to_csv("M:/Senior living/data/psid data/allvars_st_ages.csv", index=False)
-#df = pd.read_csv("M:/Senior living/data/psid data/allvars_st_ages.csv")
-#df = df.rename(columns={'Unnamed: 1': 'year'})
+def markSeniorHousing(df): 
+ 	df = markMFR(df)
+ 	#notshared_mask = ((~df['Housing Category'].isin(['Shared']))
+ 	seniorh_mask = ((df['seniorh'].isin([1]) | (df['inst'].isin([1])))) 
+ 	df.loc[seniorh_mask, 'Housing Category'] = 'Senior housing'
+ 	return df
 
-#df = df.groupby('unique_pid')
-#df = df.apply(fillMissingMoved)
-#df.to_csv("M:/senior living/data/psid data/allvars_st.csv", index=False)
 df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
-#df = anyInst(df)
-#print df.columns.tolist()
-#print df['inst']
-#
-#df = df.apply(renameHstructure, axis=1)
-#print df.head()
-#df.to_csv("M:/senior living/data/psid data/allvars_st.csv", index=False)
-
+df = markSeniorHousing(df)
+print "Writing"
+df.to_csv("M:/senior living/data/psid data/housingcat_st.csv")
 
 '''
 
