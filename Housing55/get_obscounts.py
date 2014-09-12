@@ -158,8 +158,15 @@ def markSeniorHousing(df):
  	df.loc[seniorh_mask, 'Housing Category'] = 'Senior housing'
  	return df
 
+def markHousingCat(df):
+	df = markSeniorHousing(df) 
+	df['Trans_to'] = 0
+	moved_mask = (df['moved']==1)
+	df.loc[moved_mask, 'Trans_to'] = df['Housing Category']
+	return df
+
 df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
-df = markSeniorHousing(df)
+df = markHousingCat(df)
 print "Writing"
 df.to_csv("M:/senior living/data/psid data/housingcat_st.csv")
 
