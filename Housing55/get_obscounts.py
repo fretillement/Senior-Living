@@ -129,14 +129,14 @@ def markShared(df):
 	df['Housing Category'] = 0
 	pre83_mask = ((df['year'] < 1983))
 	post83_mask = ((df['year'] >= 1983))
-	shared_mask = ((pre83_mask & (~df['relhead'].isin([1,2,8]))) | (post83_mask & (~df['relhead'].isin([10,20,90]))))
+	shared_mask = ((pre83_mask & (~df['relhead'].isin([0,1,2,8]))) | (post83_mask & (~df['relhead'].isin([0,10,20,90]))))
 	df.loc[shared_mask, 'Housing Category'] = 'Shared'
 	return df 
 
 def markSFO(df): 
 	df = markShared(df)
-	sf_mask = ((df['hstructure'].isin([1])))
-	owner_mask = ((df['htenure'].isin([1])))
+	sf_mask = ((df['hstructure'] == 'Single-family house'))
+	owner_mask = ((df['htenure'] == 1))
 	notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
 	sfo_mask =  ((sf_mask & owner_mask & notshared_mask))
 	df.loc[sfo_mask, 'Housing Category'] = 'SFO'
@@ -145,7 +145,8 @@ def markSFO(df):
 def markMFR(df):
  	df = markSFO(df)
  	notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
- 	mf_mask = ((df['hstructure'].isin([2, 3, 6, 7])))
+ 	mf_mask = ((df['hstructure'].isin(['Duplex/ 2-family house', 'Multifamily',\
+ 				'Townhouse', 'Other'])))
  	renter_mask = ((df['htenure'].isin([5])))
  	mfr_mask = ((mf_mask & renter_mask & notshared_mask))
  	df.loc[mfr_mask, 'Housing Category'] = 'MFR'
@@ -165,10 +166,34 @@ def markHousingCat(df):
 	df.loc[moved_mask, 'Trans_to'] = df['Housing Category']
 	return df
 
-df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
-df = markHousingCat(df)
-print "Writing"
-df.to_csv("M:/senior living/data/psid data/housingcat_st.csv")
+def markHousingFrom(df): 
+	grouped = df.groupby('unique_pid')
+	def getFrom(gr): 
+		gr['Trans_from'] = 0
+		if gr.loc[(gr['moved']==1), 'moved'].sum() > 0: 
+			gr_iter = gr.iterrows()
+			for l in gr_iter: 
+				(index, line) = l
+				if line['moved'] == 1 and index-1 in gr.index: gr.loc[index, 'Trans_from'] = gr.loc[index-1, 'Housing Category']		
+		return gr 
+	df = grouped.apply(getFrom)
+	return df
+
+#df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
+df = pd.read_csv("/users/shruthivenkatesh/desktop/senior-living-proj/data/housingcat_st.csv")
+#df = markHousingFrom(df)2
+#df = df.groupby('unique_pid')
+#test = df.get_group('1000_172')
+#getFrom(test)
+#df = markHousingFrom(df)
+
+#df.to_csv("/users/shruthivenkatesh/desktop/senior-living-proj/data/housingcat_st.csv")
+
+
+#print df.ix[30:40]
+#print df.head(20)
+#print "Writing"
+#df.to_csv("M:/senior living/data/psid data/housingcat_st.csv")
 
 '''
 
