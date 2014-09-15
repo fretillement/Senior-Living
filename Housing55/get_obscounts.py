@@ -1,3 +1,4 @@
+from __future__ import division
 import pandas as pd
 from count_transitions import fillAges, calcSandwichAges, calcOutsideAges
 import gc
@@ -30,6 +31,7 @@ def getCodes(namestub, varfile=var_file):
 	values = pd.read_csv(varfile, usecols = [namestub, 'year']).dropna()
 	years = map(int, values['year'].tolist())
 	codes = values[namestub].tolist()
+	#print years,codes
 	return [years, codes]
 
 def readRaw(rawfile=raw_file, varfile=var_file, namestub_list=namestub_list): 
@@ -63,6 +65,7 @@ def stackdf(namestub):
 	st_sep = st_sep.rename(columns={0:namestub, 'level_1':'year', 'Unnamed: 1': 'year'})
 	return st_sep
 
+
 # Identify "sandwich rows" and strip all rows 
 # that are not part of a "sandwich" and have BOTH 'age'
 # and 'moved' values equal to 0
@@ -73,7 +76,6 @@ def getMissingAges(gr):
 		gr.loc[(gr['age'] == 999), 'age'] = 0
 	gr = gr.reset_index()
 	trailing_mask = ((gr['age'] > 0) | ((gr.loc[:, vars_list]).sum(axis=1) > 0))
-	#print gr.loc[trailing_mask,['age', 'moved']]
 	if gr.loc[trailing_mask,['age', 'moved']].empty :
 		return gr.loc[trailing_mask,:]
 	else:
@@ -122,7 +124,6 @@ def renameHstructure(row, hstruct_dict=hstruct_dict):
 	if row.loc['hstructure'] == 0: return row 
 	else: 
 		row.loc['hstructure'] = hstruct_dict[row.loc['hstructure']]
-		row.loc['movedto'] = row.loc['hstructure']
 		return row
 
 def markShared(df): 
@@ -137,9 +138,10 @@ def markSFO(df):
 	df = markShared(df)
 	sf_mask = ((df['hstructure'] == 'Single-family house'))
 	owner_mask = ((df['htenure'] == 1))
+	renter_mask = ((df['htenure'] == 5))
 	notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
-	sfo_mask =  ((sf_mask & owner_mask & notshared_mask))
-	df.loc[sfo_mask, 'Housing Category'] = 'SFO'
+	sfo_mask =  ((sf_mask & owner_mask & notshared_mask) | (sf_mask & renter_mask & notshared_mask))
+	df.loc[sfo_mask, 'Housing Category'] = 'SFO/ SFR'
 	return df
 
 def markMFR(df):
@@ -147,26 +149,28 @@ def markMFR(df):
  	notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
  	mf_mask = ((df['hstructure'].isin(['Duplex/ 2-family house', 'Multifamily',\
  				'Townhouse', 'Other'])))
- 	renter_mask = ((df['htenure'].isin([5])))
- 	mfr_mask = ((mf_mask & renter_mask & notshared_mask))
- 	df.loc[mfr_mask, 'Housing Category'] = 'MFR'
+ 	#renter_mask = ((df['htenure'].isin([5])))
+ 	#owner_mask = ((df['htenure'].isin([1])))
+ 	mfr_mask = ((mf_mask & notshared_mask))
+ 	df.loc[mfr_mask, 'Housing Category'] = 'MFR/ MFO'
  	return df
 
 def markSeniorHousing(df): 
  	df = markMFR(df)
- 	#notshared_mask = ((~df['Housing Category'].isin(['Shared']))
- 	seniorh_mask = ((df['seniorh'].isin([1]) | (df['inst'].isin([1])))) 
+ 	notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
+ 	seniorh_mask = (((df['seniorh'].isin([1]) | (df['inst'].isin([1]))) & notshared_mask)) 
  	df.loc[seniorh_mask, 'Housing Category'] = 'Senior housing'
  	return df
 
-def markHousingCat(df):
+def markHousingTo(df):
 	df = markSeniorHousing(df) 
 	df['Trans_to'] = 0
 	moved_mask = (df['moved']==1)
 	df.loc[moved_mask, 'Trans_to'] = df['Housing Category']
 	return df
 
-def markHousingFrom(df): 
+def markHousingFrom(df):
+	df = markHousingTo(df) 
 	grouped = df.groupby('unique_pid')
 	def getFrom(gr): 
 		gr['Trans_from'] = 0
@@ -179,46 +183,69 @@ def markHousingFrom(df):
 	df = grouped.apply(getFrom)
 	return df
 
-#df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
-df = pd.read_csv("/users/shruthivenkatesh/desktop/senior-living-proj/data/housingcat_st.csv")
-#df = markHousingFrom(df)2
-#df = df.groupby('unique_pid')
-#test = df.get_group('1000_172')
-#getFrom(test)
+#age = stackdf('age')
+#for n in vars_list: 
+#	age = age.merge(stackdf(n), right_index=True, left_index=True, how='outer')
+#age.to_csv("M:/senior living/data/psid data/basicvars.csv")
+#df = pd.read_csv("M:/senior living/data/psid data/basicvars.csv")
+#df_withage = df.groupby('unique_pid').apply(fillMissingMoved)
+#df_withage.to_csv("M:/senior living/data/psid data/basicvars_age.csv", index=False)
+#df = pd.read_csv("M:/senior living/data/psid data/basicvars_age.csv")
+#df = anyInst(df)
+#df = df.apply(renameHstructure, axis=1)
+#df = markSeniorHousing(df)
+#df.to_csv("M:/senior living/data/psid data/basicvars_age_housing.csv")
+#df = pd.read_csv("M:/senior living/data/psid data/basicvars_age_housing.csv")
+#df = markHousingTo(df)
+#df.to_csv("M:/senior living/data/psid data/allvars_st.csv")
+
+
+def ageTrans(df): 
+	df_gr = df.groupby('age2')
+	
+	def ageGrCount(gr): 
+		age = gr['age2'].iloc[0]
+		output = {age: {}}
+		existingcat = gr['Housing Category'].value_counts()
+		tocat = gr['Trans_to'].value_counts()
+		fromcat = gr['Trans_from'].value_counts()
+		numtrans = len(gr.loc[((gr['moved']==1) & (gr['Housing Category'] != 0))].index)
+		for c in existingcat.index: 
+			info = {c: existingcat[c]}
+			output[age].update(info)
+		for c in tocat.index:
+			#print c
+			#info = {'to_'+str(c): tocat[c]/numtrans}
+			info = {'to_'+str(c): tocat[c]}
+			output[age].update(info)
+		for c in fromcat.index: 
+			#info = {'from_'+str(c): fromcat[c]/numtrans}
+			info = {'from_'+str(c): fromcat[c]}
+			output[age].update(info)	
+		return pd.DataFrame.from_dict(output, orient='index') 
+
+	sharesdf = df_gr.apply(ageGrCount)
+	return sharesdf
+
+df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
+#df = df.rename(columns={'housingcategory': 'Housing Category'})
 #df = markHousingFrom(df)
+#df.to_csv("M:/senior living/data/psid data/allvars_st.csv", index=False)
 
-#df.to_csv("/users/shruthivenkatesh/desktop/senior-living-proj/data/housingcat_st.csv")
+ranges = [range(1968, 1985), range(1985, 1996), range(1996, 2000) + range(1999, 2013, 2)]
+for timespan in ranges: 
+	timeobs = df.loc[((df['year'].isin(timespan))), :] 
+	df_shares = ageTrans(timeobs)
+	name = str(min(timespan)) + '-' + str(max(timespan))
+	print name 
+	df_shares.to_csv("M:/senior living/data/psid data/hcatnums_"+name+".csv", index=True)
 
 
-#print df.ix[30:40]
-#print df.head(20)
-#print "Writing"
-#df.to_csv("M:/senior living/data/psid data/housingcat_st.csv")
 
+#df_shares = ageTrans(df)
+#df_shares.to_csv("M:/senior living/data/psid data/housingcat_nums.csv", index=True)
+	
 '''
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#output = gr_merged.apply(fillMissingMoved)
-#print "**Writing**"
-#output.to_csv("M:/Senior living/data/psid data/edited_vars_68-75.csv")
-#output.to_csv("/users/shruthivenkatesh/desktop/senior-living-proj/data/edited_vars.csv")
-#print fixMissing(test)
-#test= fillMissingAges(test)
-#print test.loc[:, ['age', 'age2', 'year', 'moved']]
-#print fillMissingMoved(test)
-
-gc.collect()
+df = pd.read_csv("M:/senior living/data/psid data/housingcat_st.csv")
 
 '''
