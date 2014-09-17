@@ -5,12 +5,15 @@ import gc
 
 # Set file paths: variable codes and raw data 
 var_file = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
-raw_file = 'M:/Senior Living/Data/PSID Data/J177301.csv'
+raw_file = 'M:/Senior Living/Data/PSID Data/J178127.csv'
+beale_fpath = 'M:/Senior Living/Data/Psid Data/Beale Urbanicity/NewBeale8511.csv'
 
 # Set namestub list 
 ids_list = ['id1968', 'personnum', 'age']
 vars_list = ['hstructure', 'htenure', 'moved', 'indweight', 'numrooms', \
-			'seniorh', 't_seniorh', 'relhead', 'whymoved', 'tinst']
+			'seniorh', 't_seniorh', 'relhead', 'whymoved', 'tinst', 'famid', \
+			'income', 'race', 'gender', 'mar', 'educ', 'obstype', 'wealth', \
+			'impwealth', 'health']
 namestub_list = ids_list + vars_list
 
 #Set possible hstructure cats
@@ -35,12 +38,15 @@ def getCodes(namestub, varfile=var_file):
 	return [years, codes]
 
 def readRaw(rawfile=raw_file, varfile=var_file, namestub_list=namestub_list): 
-	cols = []
+	ages = getCodes('age')[1]
+	cols = ages
 	for n in namestub_list: 
 		cols = getCodes(n)[1] + cols
-	raw = pd.read_csv(rawfile, usecols=cols)
+	raw = pd.read_csv(rawfile)
+	print raw.columns.tolist()
 	# Keep only obs >= 25 at any given point 
-	ages = getCodes('age')[1]
+	for n in ages: 
+		if n not in raw.columns.tolist(): print n
 	raw['25plus'] = (raw.loc[:, ages] >= 25).sum(axis=1) > 0 
 	return raw
 
@@ -64,6 +70,7 @@ def stackdf(namestub):
 	st_sep = pd.DataFrame(sep.set_index('unique_pid').stack())
 	st_sep = st_sep.rename(columns={0:namestub, 'level_1':'year', 'Unnamed: 1': 'year'})
 	return st_sep
+
 
 
 # Identify "sandwich rows" and strip all rows 
@@ -183,20 +190,38 @@ def markHousingFrom(df):
 	df = grouped.apply(getFrom)
 	return df
 
-#age = stackdf('age')
-#for n in vars_list: 
-#	age = age.merge(stackdf(n), right_index=True, left_index=True, how='outer')
-#age.to_csv("M:/senior living/data/psid data/basicvars.csv")
+def mergeBeale(df, beale_fpath=beale_fpath):
+	df['urbancode'] = 0
+	bealedf = pd.read_csv(beale_fpath).groupby(['CBV2', 'CBV3'])
+	for group in bealedf: 
+		(key, g) = group
+		(year, famid) = key
+		id_mask = ((df['year']==year) & (df['famid']==famid))
+		df.loc[id_mask, 'urbancode'] = g['CBV4'].iloc[0]
+		print key
+	return df 
+
+
+print "Constructing basic vars"
+age = stackdf('age')
+for n in vars_list: 
+	print n
+	age = age.merge(stackdf(n), right_index=True, left_index=True, how='outer')
+print age.columns.tolist()
+age.to_csv("M:/senior living/data/psid data/basicvars.csv")
+
+#print "Filling missing ages/ moved"
 #df = pd.read_csv("M:/senior living/data/psid data/basicvars.csv")
 #df_withage = df.groupby('unique_pid').apply(fillMissingMoved)
 #df_withage.to_csv("M:/senior living/data/psid data/basicvars_age.csv", index=False)
+
+#print "Marking housing categories"
 #df = pd.read_csv("M:/senior living/data/psid data/basicvars_age.csv")
 #df = anyInst(df)
 #df = df.apply(renameHstructure, axis=1)
-#df = markSeniorHousing(df)
 #df.to_csv("M:/senior living/data/psid data/basicvars_age_housing.csv")
 #df = pd.read_csv("M:/senior living/data/psid data/basicvars_age_housing.csv")
-#df = markHousingTo(df)
+#df = markHousingFrom(df)
 #df.to_csv("M:/senior living/data/psid data/allvars_st.csv")
 
 
@@ -227,25 +252,37 @@ def ageTrans(df):
 	sharesdf = df_gr.apply(ageGrCount)
 	return sharesdf
 
-df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
+#df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
 #df = df.rename(columns={'housingcategory': 'Housing Category'})
-#df = markHousingFrom(df)
-#df.to_csv("M:/senior living/data/psid data/allvars_st.csv", index=False)
+#df = mergeBeale(df)
+#print "Writing"
+#df.to_csv('M:/senior living/data/psid data/allvars_st_urban.csv')
+'''
+df = pd.read_csv('M:/senior living/data/psid data/allvars_st_urban.csv')
 
-ranges = [range(1968, 1985), range(1985, 1996), range(1996, 2000) + range(1999, 2013, 2)]
+urbancode_mask = ((df['urbancode'] <= 6) & (df['urbancode'] >= 1)) 
+ruralcode_mask = ((df['urbancode'] >= 7)) 
+
+urbandf = df.loc[urbancode_mask]
+ruraldf = df.loc[ruralcode_mask]
+
+#range(1968, 1985), 
+ranges = [range(1985, 1996), range(1996, 2000) + range(1999, 2013, 2)]
 for timespan in ranges: 
-	timeobs = df.loc[((df['year'].isin(timespan))), :] 
-	df_shares = ageTrans(timeobs)
+	urban_timeobs = urbandf.loc[((urbandf['year'].isin(timespan))), :] 
+	rural_timeobs = ruraldf.loc[((ruraldf['year'].isin(timespan))), :] 
+
+	urbandf_shares = ageTrans(urban_timeobs)
+	ruraldf_shares = ageTrans(rural_timeobs)
+
 	name = str(min(timespan)) + '-' + str(max(timespan))
 	print name 
-	df_shares.to_csv("M:/senior living/data/psid data/hcatnums_"+name+".csv", index=True)
 
+	urbandf_shares.to_csv("M:/senior living/data/psid data/hcatnums_urban_"+name+".csv", index=True)
+	ruraldf_shares.to_csv("M:/senior living/data/psid data/hcatnums_rural_"+name+".csv", index=True)
 
 
 #df_shares = ageTrans(df)
 #df_shares.to_csv("M:/senior living/data/psid data/housingcat_nums.csv", index=True)
-	
-'''
-df = pd.read_csv("M:/senior living/data/psid data/housingcat_st.csv")
 
 '''
