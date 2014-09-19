@@ -26,6 +26,7 @@ def renameRace(df):
 				4: 'Asian', \
 				5: 'Native Hawaiian or Pacific Islander', \
 				7: 'Other', \
+				6: 'Mentions color other than black or white', \
 				8: "Don't know", \
 				9: "Refused"}
 	for code in racedict: 
@@ -50,66 +51,76 @@ def renameGender(df):
 
 
 def getDemog(df, demvars=['gender', 'mar', 'race', 'educ']):
-	#df = renameGender(renameMarital(renameRace(renameEduc(df))))
-	#df = df.drop(['Unnamed: 1', 'index', 'unique_pid.1'], axis=1)
-	df = pd.read_csv("M:/senior living/data/psid data/allvars_demo.csv")
+	df = renameGender(renameMarital(renameRace(renameEduc(df))))
+	df = df.drop(['Unnamed: 1', 'index', 'unique_pid.1'], axis=1)
+	df.to_csv("M:/senior living/data/psid data/allvars_demo.csv")
+	#df = pd.read_csv("M:/senior living/data/psid data/allvars_demo.csv")
 	cats = ['Trans_to', 'Trans_from', 'Housing Category']
 	for d in demvars: 
+		output  = pd.DataFrame(index=df[d].value_counts().index.tolist())
 		for c in cats: 
+			df = df.loc[df[c] != '0', :] 
 			temp = df.groupby([d,c])['unique_pid'].count().reset_index()
 			temp = temp.rename(columns={d: d, c: c, 0L: 'counts_'+c})
 			temp = temp.pivot(d, c, 'counts_'+c)
-			#temp = temp.drop(0, axis=1)
-			temp = temp.rename(columns={x: x+"_"+c for x in temp.columns.tolist()})
-			print temp
-			#[d, c, c+'_count'] = temp.reset_index().columns
-			#print temp.columns.tolist()
-			#.pivot('gender', 'Housing Category', )
-			#temp = df.groupby(d, c)
-			#print temp
+			temp = temp.rename(columns={x: c+"_"+x for x in temp.columns.tolist()})
+			output = temp.merge(output, right_index=True, left_index=True)
+		print "Writing for "+d
+		output.to_csv("M:/senior living/data/psid data/demographics/"+ d + "_count.csv", index=True)
 
 
 def getIncomeStats(df): 
 	inc_yr_mask = ((df['income']>0) & (~df['year'].isin([1973, 1974, 1982])))
-	incwt = df.loc[inc_yr_mask, ['indweight', 'income', 'year',\
-	 'Housing Category', 'Trans_to', 'Trans_from']]
-	incwt['weighted_income'] = incwt['income'] * incwt['indweight']
+	df = df.loc[inc_yr_mask, ['indweight', 'income', 'year',\
+	 'Housing Category', 'Trans_to', 'Trans_from', 'moved']]
+	df['weighted_income'] = df['income'] * df['indweight']
 	
-	mask = ((incwt['year']==1979))
-	print incwt.loc[mask, 'Trans_to'].value_counts()
+	#print df.loc[(df['Trans_from'] != '0') & (df['year']==1975), 'Trans_from'].value_counts()
+	print df.loc[(df['Trans_from'] != '0') & (df['year']==1975), 'Housing Category'].value_counts()
 
-	# Get median for each direction 
-	#med_transto = incwt.groupby(['year', 'Trans_to'])['income'].median().reset_index()
-
-	#print med_transto.pivot('year', 'Trans_to', 'income').head(20)
-
+	# Calculate and write median to csv
+	#med_output = calcMedian(df, 'Trans_to')
+	#med_output = med_output.merge(calcMedian(df, 'Trans_from'), right_index=True, left_index=True)
+	#med_output = med_output.merge(calcMedian(df, 'Housing Category'), right_index=True, left_index=True)
+	#med_output.to_csv('M:/senior living/data/psid data/demographics/med_income.csv')
 	
-	'''
-	med_transfrom = incwt.groupby(['year', 'Trans_from'])['income'].median()
-	med_current = incwt.groupby(['year', 'Housing Category'])['income'].median()
+	# Calculate and write weighted avg to csv 
+	#avg_output = calcWavg(df, 'Trans_to')
+	#avg_output = avg_output.merge(calcWavg(df, 'Trans_from'), right_index=True, left_index=True)
+	#avg_output = avg_output.merge(calcMedian(df, 'Housing Category'), right_index=True, left_index=True)
+	#avg_output.to_csv('M:/senior living/data/psid data/demographics/avg_income.csv')
 	
 
-	# Get weighted average for each direction 
+
+def calcWavg(df, direction): 
 	wavg = lambda x: x['weighted_income'].sum() / x['indweight'].sum()
-	avg_transto = incwt.groupby(['year', 'Trans_to']).apply(wavg)
-	avg_transfrom = incwt.groupby(['year', 'Trans_from']).apply(wavg)
-	avg_current = incwt.groupby(['year', 'Housing Category']).apply(wavg)
+	incwt = df.loc[df[direction] != '0']
+	avg = incwt.groupby(['year', direction]).apply(wavg)
+	avg = avg.reset_index().pivot('year', direction, 0)
+	avg = avg.rename(columns={x: direction+'_'+x for x in avg.columns.tolist()})
+	return avg
+
+def calcMedian(df, direction):
+	incwt = df.loc[df[direction] != '0']
+	output = incwt.groupby(['year', direction])['income'].median().reset_index()	
+	output = output.pivot('year', direction, 'income')
+	output = output.rename(columns={x: direction+'_'+x for x in output.columns.tolist()})
+	return output
 
 
-	#mean_transto = incwt.groupby(['year', 'Trans_to'])['weighted_income'].sum()
-	#print med_transto.reset_index()
-	'''
-
-
-
-#def demCounts(df)
-
+'''
+# Get unweighted counts by demographic variables EXCEPT wealth/ income
 df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
+inc_yr_mask = ((df['income']>0) & (~df['year'].isin([1973, 1974, 1982])))
+incwt = df.loc[inc_yr_mask, ['indweight', 'income', 'year',\
+	 'Housing Category', 'Trans_to', 'Trans_from', 'moved', 'hstructure']]
+incwt['weighted_income'] = incwt['income'] * incwt['indweight']
 getDemog(df)
-#getIncomeStats(df)
-#incwt = df.loc[df['income']>0, ['indweight', 'income', 'year']]
-#print type(incwt.groupby('year')['income'].median())
+'''
 
+# Get unweighted average and median stats for wealth and income
+df = pd.read_csv("M:/senior living/data/psid data/allvars_demo.csv")
+getIncomeStats(df)
 
 #income('Trans_to', 'to', df)
 

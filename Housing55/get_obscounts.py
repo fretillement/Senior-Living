@@ -137,44 +137,48 @@ def renameHstructure(row, hstruct_dict=hstruct_dict):
 		row.loc['hstructure'] = hstruct_dict[row.loc['hstructure']]
 		return row
 
-def markShared(df): 
+
+def markSF(df): 
+	#df = markShared(df)
 	df['Housing Category'] = 0
+	sf_mask = ((df['hstructure'] == 'Single-family house'))
+	owner_mask = ((df['htenure'] == 1))
+	renter_mask = ((df['htenure'] == 5))
+	#notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
+	#sfo_mask =  ((sf_mask & owner_mask & notshared_mask) | (sf_mask & renter_mask & notshared_mask))
+	df.loc[sf_mask, 'Housing Category'] = 'SFO/ SFR'
+	return df
+
+def markMF(df):
+ 	df = markSF(df)
+ 	#notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
+ 	mf_mask = ((df['hstructure'].isin(['Duplex/ 2-family house', 'Condo', 'Multifamily',\
+ 				'Townhouse', 'Other'])))
+ 	#renter_mask = ((df['htenure'].isin([5])))
+ 	#owner_mask = ((df['htenure'].isin([1])))
+ 	#mfr_mask = ((mf_mask & notshared_mask))
+ 	df.loc[mf_mask, 'Housing Category'] = 'MFR/ MFO'
+ 	return df
+
+def markSeniorHousing(df): 
+ 	df = markMF(df)
+ 	#notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
+ 	#seniorh_mask = (((df['seniorh'].isin([1]) | (df['inst'].isin([1]))) & notshared_mask)) 
+ 	seniorh_mask = (((df['seniorh'].isin([1]) | (df['inst'].isin([1])))))
+ 	df.loc[seniorh_mask, 'Housing Category'] = 'Senior housing'
+ 	return df
+
+def markShared(df): 
+	df = markSeniorHousing(df) 
+	#df['Housing Category'] = 0
 	pre83_mask = ((df['year'] < 1983))
 	post83_mask = ((df['year'] >= 1983))
 	shared_mask = ((pre83_mask & (~df['relhead'].isin([0,1,2,8]))) | (post83_mask & (~df['relhead'].isin([0,10,20,90]))))
 	df.loc[shared_mask, 'Housing Category'] = 'Shared'
 	return df 
 
-def markSFO(df): 
-	df = markShared(df)
-	sf_mask = ((df['hstructure'] == 'Single-family house'))
-	owner_mask = ((df['htenure'] == 1))
-	renter_mask = ((df['htenure'] == 5))
-	notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
-	sfo_mask =  ((sf_mask & owner_mask & notshared_mask) | (sf_mask & renter_mask & notshared_mask))
-	df.loc[sfo_mask, 'Housing Category'] = 'SFO/ SFR'
-	return df
-
-def markMFR(df):
- 	df = markSFO(df)
- 	notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
- 	mf_mask = ((df['hstructure'].isin(['Duplex/ 2-family house', 'Multifamily',\
- 				'Townhouse', 'Other'])))
- 	#renter_mask = ((df['htenure'].isin([5])))
- 	#owner_mask = ((df['htenure'].isin([1])))
- 	mfr_mask = ((mf_mask & notshared_mask))
- 	df.loc[mfr_mask, 'Housing Category'] = 'MFR/ MFO'
- 	return df
-
-def markSeniorHousing(df): 
- 	df = markMFR(df)
- 	notshared_mask = ((~df['Housing Category'].isin(['Shared'])))
- 	seniorh_mask = (((df['seniorh'].isin([1]) | (df['inst'].isin([1]))) & notshared_mask)) 
- 	df.loc[seniorh_mask, 'Housing Category'] = 'Senior housing'
- 	return df
-
 def markHousingTo(df):
-	df = markSeniorHousing(df) 
+	df = markShared(df) 
 	df['Trans_to'] = 0
 	moved_mask = (df['moved']==1)
 	df.loc[moved_mask, 'Trans_to'] = df['Housing Category']
@@ -205,6 +209,7 @@ def mergeBeale(df, beale_fpath=beale_fpath):
 		print key
 	return df 
 
+'''
 print "Stacking all variables into one df"
 age = stackdf('age')
 for n in vars_list: 
@@ -219,6 +224,7 @@ df = df.rename(columns={'Unnamed: 1': 'year'})
 df_ages = df.groupby('unique_pid').apply(fillMissingMoved)
 print "**Writing**"
 df_ages.to_csv("M:/senior living/data/psid data/basicvars_age.csv")
+'''
 
 print "Renaming/ marking housing categories"
 df = pd.read_csv("M:/senior living/data/psid data/basicvars_age.csv")
