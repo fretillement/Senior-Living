@@ -3,15 +3,26 @@ import pandas as pd
 from count_transitions import fillAges, calcSandwichAges, calcOutsideAges
 import gc
 
+'''
+Edit to point to the most recent raw file
+'''
+mostrecent = "J178251"
+
 # Set file paths: variable codes and raw data 
-var_file = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
-raw_file = 'M:/Senior Living/Data/PSID Data/J178148_edits.csv'
+#var_file = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
+var_file = '/users/shruthivenkatesh/desktop/senior-living-proj/Psid_clean/agecohort_vars.csv'
+#raw_file = 'M:/Senior Living/Data/PSID Data/J178148_edits.csv'
+raw_file = '/users/shruthivenkatesh/desktop/senior-living-proj/data/' + mostrecent + '.csv'
 beale_fpath = 'M:/Senior Living/Data/Psid Data/Beale Urbanicity/NewBeale8511.csv'
+#basicvars_fpath = "M:/senior living/data/psid data/basicvars.csv"
+basicvars_fpath = "/users/shruthivenkatesh/desktop/senior-living-proj/data/basicvars.csv"
+#basicvars_age_fpath = "M:/senior living/data/psid data/basicvars_age.csv"
+basicvars_age_fpath = "/users/shruthivenkatesh/desktop/senior-living-proj/data/basicvars_age.csv"
 
 # Set namestub list 
 ids_list = ['id1968', 'personnum', 'age']
 vars_list = ['hstructure', 'htenure', 'moved', 'indweight', 'numrooms', \
-			'seniorh', 't_seniorh', 'relhead', 'whymoved', 'tinst', 'famid', \
+			'seniorh', 't_seniorh', 'relhead', 'whymoved', 'tinst', \
 			'income', 'race', 'gender', 'mar', 'educ', 'obstype', 'wealth', \
 			'impwealth', 'health']
 namestub_list = ids_list + vars_list
@@ -53,6 +64,8 @@ def getSepFrames(namestub):
 	raw = readRaw()
 	codes = list(set(getCodes(namestub)[1]))
 	ids = list(set(getCodes('id1968')[1])) + list(set(getCodes('personnum')[1]))
+	for i in codes: 
+		if i not in raw.columns.tolist(): print i
 	sep = raw.loc[(raw['25plus'] > 0), codes + ids]
 	return sep
 
@@ -69,13 +82,6 @@ def stackdf(namestub):
 	st_sep = pd.DataFrame(sep.set_index('unique_pid').stack())
 	st_sep = st_sep.rename(columns={0:namestub, 'level_1':'year', 'Unnamed: 1': 'year'})
 	return st_sep
-
-#print "Constructing basic vars"
-#codes = getCodes('gender')[1]
-#df = readRaw()
-#for c in codes: 
-#	if c not in df.columns.tolist(): print c
-#stackdf('gender')
 
 # Identify "sandwich rows" and strip all rows 
 # that are not part of a "sandwich" and have BOTH 'age'
@@ -216,15 +222,15 @@ for n in vars_list:
 	print n
 	age = age.merge(stackdf(n), right_index=True, left_index=True, how='outer')
 print age.columns.tolist()
-age.to_csv("M:/senior living/data/psid data/basicvars.csv")
+age.to_csv(basicvars_fpath)
+
 
 print "Fill-in procedure for age and moved vars"
-df = pd.read_csv("M:/senior living/data/psid data/basicvars.csv")
+df = pd.read_csv(basicvars_fpath)
 df = df.rename(columns={'Unnamed: 1': 'year'})
 df_ages = df.groupby('unique_pid').apply(fillMissingMoved)
 print "**Writing**"
-df_ages.to_csv("M:/senior living/data/psid data/basicvars_age.csv")
-'''
+df_ages.to_csv(basicvars_age_fpath)
 
 print "Renaming/ marking housing categories"
 df = pd.read_csv("M:/senior living/data/psid data/basicvars_age.csv")
@@ -236,7 +242,7 @@ df = markHousingFrom(df)
 print "		**Writing**"
 df.to_csv("M:/senior living/data/psid data/allvars_st.csv", index=False)
 
-
+'''
 
 
 def ageTrans(df): 
