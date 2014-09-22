@@ -5,6 +5,8 @@ import pandas as pd
 This script returns counts by housing categories of economic &
 demographic characteristics of PSID panel members (file: J178148_edits.csv)
 '''
+# Set output filepath for demographic variable counts 
+output_fpath = "M:/senior living/data/psid data/demographics/"
 
 # Rename variables accordingly 
 def renameEduc(df): 
@@ -50,9 +52,9 @@ def renameGender(df):
 	return output
 
 
-def getDemog(df, demvars=['gender', 'mar', 'race', 'educ']):
-	df = renameGender(renameMarital(renameRace(renameEduc(df))))
-	df = df.drop(['Unnamed: 1', 'index', 'unique_pid.1'], axis=1)
+def getDemog(df, demvars=['gender', 'mar', 'race', 'educ'], output_fpath=output_fpath):
+	#df = renameGender(renameMarital(renameRace(renameEduc(df))))
+	#df = df.drop(['Unnamed: 1', 'index', 'unique_pid.1'], axis=1)
 	df.to_csv("M:/senior living/data/psid data/allvars_demo.csv")
 	#df = pd.read_csv("M:/senior living/data/psid data/allvars_demo.csv")
 	cats = ['Trans_to', 'Trans_from', 'Housing Category']
@@ -66,65 +68,72 @@ def getDemog(df, demvars=['gender', 'mar', 'race', 'educ']):
 			temp = temp.rename(columns={x: c+"_"+x for x in temp.columns.tolist()})
 			output = temp.merge(output, right_index=True, left_index=True)
 		print "Writing for "+d
-		output.to_csv("M:/senior living/data/psid data/demographics/"+ d + "_count.csv", index=True)
+		output.to_csv(output_fpath +  d + "_count.csv", index=True)
 
 
-def getIncomeStats(df): 
-	inc_yr_mask = ((df['income']>0) & (~df['year'].isin([1973, 1974, 1982])))
-	df = df.loc[inc_yr_mask, ['indweight', 'income', 'year',\
-	 'Housing Category', 'Trans_to', 'Trans_from', 'moved']]
-	df['weighted_income'] = df['income'] * df['indweight']
+# Call functions to calc mean and median income and wealth
+# Write to a csv
+def getIncomeStats(df, var, output_fpath=output_fpath): 
+	inc_yr_mask = ((df[var]>0) & (~df['year'].isin([1973, 1974, 1982])))
+	# Select only nonzero income values and years for which there is info on 
+	# the person's housing structure 
+	df = df.loc[inc_yr_mask, [var, 'indweight', 'year', 'unique_pid',\
+	 'Housing Category', 'Trans_to', 'Trans_from', 'moved', 'hstructure']]
+	
+	# Generate a weighted income variable 
+	df['weighted_var'] = df[var] * df['indweight']
 	
 	#print df.loc[(df['Trans_from'] != '0') & (df['year']==1975), 'Trans_from'].value_counts()
-	print df.loc[(df['Trans_from'] != '0') & (df['year']==1975), 'Housing Category'].value_counts()
+	print df.loc[(df['Housing Category']=='0'), 'hstructure'].head(30)
 
-	# Calculate and write median to csv
-	#med_output = calcMedian(df, 'Trans_to')
-	#med_output = med_output.merge(calcMedian(df, 'Trans_from'), right_index=True, left_index=True)
-	#med_output = med_output.merge(calcMedian(df, 'Housing Category'), right_index=True, left_index=True)
-	#med_output.to_csv('M:/senior living/data/psid data/demographics/med_income.csv')
+	# Calculate and write median to csv for each direction of transtion (to, from, current)
+	med_output = calcMedian(df, var, 'Trans_to')
+	med_output = med_output.merge(calcMedian(df, var, 'Trans_from'), right_index=True, left_index=True)
+	med_output = med_output.merge(calcMedian(df, var, 'Housing Category'), right_index=True, left_index=True)
+	med_output.to_csv(output_fpath+'med_' + var + '.csv')
 	
 	# Calculate and write weighted avg to csv 
-	#avg_output = calcWavg(df, 'Trans_to')
-	#avg_output = avg_output.merge(calcWavg(df, 'Trans_from'), right_index=True, left_index=True)
-	#avg_output = avg_output.merge(calcMedian(df, 'Housing Category'), right_index=True, left_index=True)
-	#avg_output.to_csv('M:/senior living/data/psid data/demographics/avg_income.csv')
+	avg_output = calcWavg(df, 'Trans_to')
+	avg_output = avg_output.merge(calcWavg(df, 'Trans_from'), right_index=True, left_index=True)
+	avg_output = avg_output.merge(calcWavg(df, 'Housing Category'), right_index=True, left_index=True)
+	avg_output.to_csv(output_fpath+'avg_' + var + '.csv')
 	
-
-
+# Calculate weighted average for a given direction (to, from, or current)	
 def calcWavg(df, direction): 
-	wavg = lambda x: x['weighted_income'].sum() / x['indweight'].sum()
+	wavg = lambda x: x['weighted_var'].sum() / x['indweight'].sum()
 	incwt = df.loc[df[direction] != '0']
 	avg = incwt.groupby(['year', direction]).apply(wavg)
 	avg = avg.reset_index().pivot('year', direction, 0)
 	avg = avg.rename(columns={x: direction+'_'+x for x in avg.columns.tolist()})
 	return avg
 
-def calcMedian(df, direction):
+# Calculuate median for a given direction (to, from, current)
+def calcMedian(df, var, direction):
 	incwt = df.loc[df[direction] != '0']
-	output = incwt.groupby(['year', direction])['income'].median().reset_index()	
-	output = output.pivot('year', direction, 'income')
+	output = incwt.groupby(['year', direction])[var].median().reset_index()	
+	output = output.pivot('year', direction, var)
 	output = output.rename(columns={x: direction+'_'+x for x in output.columns.tolist()})
 	return output
 
 
-'''
+
 # Get unweighted counts by demographic variables EXCEPT wealth/ income
+# Read in full stacked df
 df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
-inc_yr_mask = ((df['income']>0) & (~df['year'].isin([1973, 1974, 1982])))
-incwt = df.loc[inc_yr_mask, ['indweight', 'income', 'year',\
-	 'Housing Category', 'Trans_to', 'Trans_from', 'moved', 'hstructure']]
-incwt['weighted_income'] = incwt['income'] * incwt['indweight']
+
+'''
+# Rename race, education, gender, and marital variables 
+df = renameRace(df)
+df = renameEduc(df)
+df = renameGender(df)
+df = renameMarital(df)
+
+# Calculate counts by race, education, gender, and marital status 
 getDemog(df)
 '''
+# Get median and mean income by year
+getIncomeStats(df, 'income')
 
-# Get unweighted average and median stats for wealth and income
-df = pd.read_csv("M:/senior living/data/psid data/allvars_demo.csv")
-getIncomeStats(df)
+# Get median and mean wealth by year 
+getIncomeStats(df, 'impwealth')
 
-#income('Trans_to', 'to', df)
-
-#print (incwt['income']*incwt['indweight']).median()
-
-#print df.loc[((df['income']>0) & (df['year']==2011) & (df['moved'] == 1) & (df['Trans_to'] =='SFO/ SFR')), 'income'].describe()
-#print income('Trans_from', "From", df)

@@ -4,23 +4,26 @@
 
 clear 
 
+*Point to most recent raw dataset
+local recent J178305
+
 *Run dictionary file to get labels 
-do "M:\senior living\data\psid data\J178127.do" 
+do "M:/senior living/data/psid data/`recent'/`recent'.do" 
 *run "/users/shruthivenkatesh/Desktop/J177301/J177301.do"
 
 *Save in stata format 
-save "M:/Senior Living/Data/PSID Data/J178127.dta", replace 
+save "M:/Senior Living/Data/PSID Data/`recent'.dta", replace 
 *save "/users/ShruthiVenkatesh/Desktop/J177301.dta", replace
 
 *Export to csv 
-outsheet using "M:/Senior Living/Data/PSID Data/J178127.csv", comma noquote replace 
+outsheet using "M:/Senior Living/Data/PSID Data/`recent'.csv", comma noquote replace 
 *outsheet using "/users/ShruthiVenkatesh/Desktop/J177301.csv", comma replace
 
 *Save a variable description
-descsave, saving("M:/Senior Living/Data/PSID Data/J178127_desc.dta", replace)
-use "M:/Senior Living/Data/PSID Data/J178127_desc.dta", clear
+descsave, saving("M:/Senior Living/Data/PSID Data/`recent'_desc.dta", replace)
+use "M:/Senior Living/Data/PSID Data/`recent'_desc.dta", clear
 rename vallab year
-outsheet using "M:/Senior Living/Data/PSID Data/J178127_desc.csv", comma replace
+outsheet using "M:/Senior Living/Data/PSID Data/`recent'_desc.csv", comma replace
 
 *descsave, saving("/users/ShruthiVenkatesh/Desktop/J177301_desc.dta", replace)
 *use "/users/ShruthiVenkatesh/Desktop/J177301_desc.dta", clear

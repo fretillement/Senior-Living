@@ -6,18 +6,18 @@ import gc
 '''
 Edit to point to the most recent raw file
 '''
-mostrecent = "J178251"
+mostrecent = "J178305"
 
 # Set file paths: variable codes and raw data 
-#var_file = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
-var_file = '/users/shruthivenkatesh/desktop/senior-living-proj/Psid_clean/agecohort_vars.csv'
-#raw_file = 'M:/Senior Living/Data/PSID Data/J178148_edits.csv'
-raw_file = '/users/shruthivenkatesh/desktop/senior-living-proj/data/' + mostrecent + '.csv'
+var_file = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
+#var_file = '/users/shruthivenkatesh/desktop/senior-living-proj/Psid_clean/agecohort_vars.csv'
+raw_file = 'M:/Senior Living/Data/PSID Data/J178148_edits.csv'
+#raw_file = '/users/shruthivenkatesh/desktop/senior-living-proj/data/' + mostrecent + '.csv'
 beale_fpath = 'M:/Senior Living/Data/Psid Data/Beale Urbanicity/NewBeale8511.csv'
-#basicvars_fpath = "M:/senior living/data/psid data/basicvars.csv"
-basicvars_fpath = "/users/shruthivenkatesh/desktop/senior-living-proj/data/basicvars.csv"
-#basicvars_age_fpath = "M:/senior living/data/psid data/basicvars_age.csv"
-basicvars_age_fpath = "/users/shruthivenkatesh/desktop/senior-living-proj/data/basicvars_age.csv"
+basicvars_fpath = "M:/senior living/data/psid data/basicvars.csv"
+#basicvars_fpath = "/users/shruthivenkatesh/desktop/senior-living-proj/data/basicvars.csv"
+basicvars_age_fpath = "M:/senior living/data/psid data/basicvars_age.csv"
+#basicvars_age_fpath = "/users/shruthivenkatesh/desktop/senior-living-proj/data/basicvars_age.csv"
 
 # Set namestub list 
 ids_list = ['id1968', 'personnum', 'age']
@@ -87,12 +87,12 @@ def stackdf(namestub):
 # that are not part of a "sandwich" and have BOTH 'age'
 # and 'moved' values equal to 0
 def getMissingAges(gr): 
-	print gr['unique_pid'].iloc[0]
 	gr = gr.fillna(0)
 	if 999 in gr['age'].tolist(): 
 		gr.loc[(gr['age'] == 999), 'age'] = 0
 	gr = gr.reset_index()
-	trailing_mask = ((gr['age'] > 0) | ((gr.loc[:, vars_list]).sum(axis=1) > 0))
+	trailing_mask = ((gr['obstype'].isin([0,5])))
+	#trailing_mask = ((gr['age'] > 0) | ((gr.loc[:, vars_list]).sum(axis=1) > 0))
 	if gr.loc[trailing_mask,['age', 'moved']].empty :
 		return gr.loc[trailing_mask,:]
 	else:
@@ -116,32 +116,50 @@ def fillMissingAges(gr):
 # Fill in missing "moved" observations (if at least one other var exists)
 def fillMissingMoved(gr): 
 	print gr['unique_pid'].iloc[0]
+	gr = gr.loc[(gr['obstype'].isin([0,5])), :]
 	gr = fillMissingAges(gr)
 	if gr.empty: 
 		return gr
 	else: 	
 		gr['moved2'] = gr.loc[:, 'moved']
-		missing_move = ((gr['moved'] == 0) & (gr.loc[:, vars_list].sum(axis=1) > 0))
+ 		#if 'obstype' in vars_list: vars_list.remove('obstype')
+ 		#if 'gender' in vars_list: vars_list.remove('gender')
+		#missing_move = ((gr['moved'] == 0) & (gr.loc[:, vars_list].sum(axis=1) > 0))
+		missing_move = ((gr['moved'] == 0) & (gr['obstype'].isin([0,5])))
 		gr.loc[missing_move, 'moved2'] = 5
 		gr = gr.loc[(gr['age2']>0), :]
 		return gr
+
+
+# Fill in missing hstructure obs if the person hasn't moved
+def fillHstructure(group):
+	group = group.reset_index(drop=True)
+	if any(0 == group.hstructure): 
+		gr_iter = group.iterrows()
+		for l in gr_iter: 
+			(index, row) = l 
+			if (index > 0) & (row['moved2'] == 5) & (row['hstructure'] == 0): 
+				group.loc[index, 'hstructure'] = group.loc[index-1, 'hstructure']
+		return group
+	else: return group 
+
 
 # Identify members of the panel who have been institutionalized
 # Based on method outlined in Ellwood and Kane (1990)
 def anyInst(df): 
 	df['inst'] = 0
-	ek1990_inst_mask = ((df['moved'] == 1) & (df['whymoved'] == 7) \
+	ek1990_inst_mask = ((df['moved2'] == 1) & (df['whymoved'] == 7) \
 				&  (df['numrooms'] <= 2) & (df['hstructure'] == 7))
 	seniorh_mask = (df['seniorh'] == 1)
 	instvar_mask = ((df['tinst'] == 3) | (df['tinst'] == 7))
 	df.loc[ek1990_inst_mask | seniorh_mask | instvar_mask, 'inst'] = 1 
 	return df 
 
-def renameHstructure(row, hstruct_dict=hstruct_dict): 
-	if row.loc['hstructure'] == 0: return row 
-	else: 
-		row.loc['hstructure'] = hstruct_dict[row.loc['hstructure']]
-		return row
+def renameHstructure(df, hstruct_dict=hstruct_dict): 
+	for n in hstruct_dict:
+		hstruct_mask = ((df['hstructure'] == n))
+		df.loc[hstruct_mask, 'hstructure'] = hstruct_dict[n]
+	return df
 
 
 def markSF(df): 
@@ -186,20 +204,23 @@ def markShared(df):
 def markHousingTo(df):
 	df = markShared(df) 
 	df['Trans_to'] = 0
-	moved_mask = (df['moved']==1)
+	moved_mask = (df['moved2']==1)
 	df.loc[moved_mask, 'Trans_to'] = df['Housing Category']
 	return df
 
 def markHousingFrom(df):
 	df = markHousingTo(df) 
+	# Fill in empty hstructure values 
+	mobile_home_other = ((df['Housing Category'].isin(['Mobile Home/ trailer', 0])))
+	df.loc[mobile_home_other, 'Housing Category'] = 'Other/ Mobile Home'
 	grouped = df.groupby('unique_pid')
 	def getFrom(gr): 
 		gr['Trans_from'] = 0
-		if gr.loc[(gr['moved']==1), 'moved'].sum() > 0: 
+		if gr.loc[(gr['moved2']==1), 'moved2'].sum() > 0: 
 			gr_iter = gr.iterrows()
 			for l in gr_iter: 
 				(index, line) = l
-				if line['moved'] == 1 and index-1 in gr.index: gr.loc[index, 'Trans_from'] = gr.loc[index-1, 'Housing Category']		
+				if line['moved2'] == 1 and index-1 in gr.index: gr.loc[index, 'Trans_from'] = gr.loc[index-1, 'Housing Category']		
 		return gr 
 	df = grouped.apply(getFrom)
 	return df
@@ -224,25 +245,30 @@ for n in vars_list:
 print age.columns.tolist()
 age.to_csv(basicvars_fpath)
 
-
 print "Fill-in procedure for age and moved vars"
 df = pd.read_csv(basicvars_fpath)
 df = df.rename(columns={'Unnamed: 1': 'year'})
 df_ages = df.groupby('unique_pid').apply(fillMissingMoved)
 print "**Writing**"
-df_ages.to_csv(basicvars_age_fpath)
+df_ages.to_csv(basicvars_age_fpath, index=False)
+
 
 print "Renaming/ marking housing categories"
 df = pd.read_csv("M:/senior living/data/psid data/basicvars_age.csv")
 print "		Identifying institutionalization"
 df = anyInst(df)
-df = df.apply(renameHstructure, axis=1)
-print "  	Marking housing transition categories"
-df = markHousingFrom(df)
-print "		**Writing**"
+df = renameHstructure(df)
+print "		Filling empty hstructure obs"
+df = df.groupby('unique_pid').apply(fillHstructure)
 df.to_csv("M:/senior living/data/psid data/allvars_st.csv", index=False)
 
 '''
+df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
+print "  	Marking housing transition categories"
+df = markHousingFrom(df)
+df.to_csv("M:/senior living/data/psid data/allvars_st.csv", index=False)
+
+
 
 
 def ageTrans(df): 
