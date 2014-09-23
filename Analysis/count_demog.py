@@ -22,17 +22,20 @@ def renameEduc(df):
  	return df 
 
 def renameRace(df):
-	racedict = {1: 'White', \
-				2: 'Black or African-American', \
-				3: 'American Indian/ Alaskan Native', \
-				4: 'Asian', \
-				5: 'Native Hawaiian or Pacific Islander', \
-				7: 'Other', \
-				6: 'Mentions color other than black or white', \
-				8: "Don't know", \
-				9: "Refused"}
-	for code in racedict: 
-		df.loc[(df['race']==code), 'race'] = racedict[code]
+	dict_1968 = {1: 'White', 2: 'Black or African-American', 3: 'Puerto Rican, Mexican', 4: 'Other', 5: 'N/A'}
+	dict_1984 = {1: 'White', 2: 'Black or African-American', 3: 'Puerto Rican, Mexican', 7: 'Other', 9: 'N/A'}
+	dict_2011 = {1: 'White', 2: 'Black or African-American', 3: 'American Indian', 4: 'Asian',\
+		 5: 'Native Hawaiian', 6: 'Mentions color other than black or white', 7: 'Other', 8: "N/A, Don't know",\
+		  9: "N/A, Don't know"}
+	mask_1968 = ((df['year'] == 1968))
+	mask_1984 = ((df['year'].isin(range(1969,1986))))
+	mask_2011 = ((df['year'].isin(range(1986,1998)+range(1999,2013,2))))
+	for code in dict_1968: 
+		df.loc[mask_1968 & (df['race']==code), 'race'] = dict_1968[code]
+	for code in dict_1984: 	
+		df.loc[mask_1984 & (df['race']==code), 'race'] = dict_1984[code]
+	for code in dict_2011: 
+		df.loc[mask_2011 & (df['race']==code), 'race'] = dict_2011[code]
 	return df 
 
 def renameMarital(df): 
@@ -121,7 +124,7 @@ def calcMedian(df, var, direction):
 # Read in full stacked df
 df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
 
-'''
+
 # Rename race, education, gender, and marital variables 
 df = renameRace(df)
 df = renameEduc(df)
@@ -130,10 +133,9 @@ df = renameMarital(df)
 
 # Calculate counts by race, education, gender, and marital status 
 getDemog(df)
-'''
+
 # Get median and mean income by year
-getIncomeStats(df, 'income')
+#getIncomeStats(df, 'income')
 
 # Get median and mean wealth by year 
-getIncomeStats(df, 'impwealth')
-
+#getIncomeStats(df, 'impwealth')
