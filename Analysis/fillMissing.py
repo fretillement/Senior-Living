@@ -1,147 +1,86 @@
-from __future__ import division
-import pandas as pd
-from count_transitions import fillAges, calcSandwichAges, calcOutsideAges
-import gc
-
-'''
-Edit to point to the most recent raw file
-'''
-mostrecent = "J178305"
-
-# Set file paths: variable codes and raw data 
-var_file = 'M:/Senior Living/Code/Senior-Living/Psid_clean/agecohort_vars.csv'
-#var_file = '/users/shruthivenkatesh/desktop/senior-living-proj/Psid_clean/agecohort_vars.csv'
-raw_file = 'M:/Senior Living/Data/PSID Data/J178148_edits.csv'
-#raw_file = '/users/shruthivenkatesh/desktop/senior-living-proj/data/' + mostrecent + '.csv'
-beale_fpath = 'M:/Senior Living/Data/Psid Data/Beale Urbanicity/NewBeale8511.csv'
-basicvars_fpath = "M:/senior living/data/psid data/basicvars.csv"
-#basicvars_fpath = "/users/shruthivenkatesh/desktop/senior-living-proj/data/basicvars.csv"
-basicvars_age_fpath = "M:/senior living/data/psid data/basicvars_age.csv"
-#basicvars_age_fpath = "/users/shruthivenkatesh/desktop/senior-living-proj/data/basicvars_age.csv"
-
-# Set namestub list 
-ids_list = ['id1968', 'personnum', 'age']
-vars_list = ['hstructure', 'htenure', 'moved', 'indweight', 'numrooms', \
-			'seniorh', 't_seniorh', 'relhead', 'whymoved', 'tinst', \
-			'income', 'race', 'gender', 'mar', 'educ', 'obstype', 'wealth', \
-			'impwealth', 'health']
-namestub_list = ids_list + vars_list
-
-#Set possible hstructure cats
-hstruct_dict = {1.0: 'Single-family house', 
-			 2.0: 'Duplex/ 2-family house', 
-			 3.0: 'Multifamily', 
-			 4.0: 'Mobile Home/ trailer', 
-			 5.0: 'Condo', 
-			 6.0: 'Townhouse', 
-			 7.0: 'Other', 
-			 8.0: "Don't know", 
-			 9.0: "Refused" 
-			 }
+from getStackedFrame import *
 
 
-# Get codes of age, moved, hstructure, tenure and id variables 
-def getCodes(namestub, varfile=var_file): 
-	values = pd.read_csv(varfile, usecols = [namestub, 'year']).dropna()
-	years = map(int, values['year'].tolist())
-	codes = values[namestub].tolist()
-	#print years,codes
-	return [years, codes]
+class fillMissing: 
+	'''
+	Class of functions that fills in missing values of age, moved, 
+	and hstructure in a stacked dataframe
+	'''
 
-def readRaw(rawfile=raw_file, varfile=var_file, namestub_list=namestub_list): 
-	ages = getCodes('age')[1]
-	cols = ages
-	for n in namestub_list: 
-		cols = getCodes(n)[1] + cols
-	raw = pd.read_csv(rawfile)
-	# Keep only obs >= 25 at any given point 
-	for n in ages: 
-		if n not in raw.columns.tolist(): print n
-	raw['25plus'] = (raw.loc[:, ages] >= 25).sum(axis=1) > 0 
-	return raw
+	def __init__(self, namestubs_df): 
+		self.df = namestubs_df
+		#self.gr = (self.df).groupby('unique_pid')
+		#self.mostrecent = mostrecent
 
-def getSepFrames(namestub): 
-	raw = readRaw()
-	codes = list(set(getCodes(namestub)[1]))
-	ids = list(set(getCodes('id1968')[1])) + list(set(getCodes('personnum')[1]))
-	for i in codes: 
-		if i not in raw.columns.tolist(): print i
-	sep = raw.loc[(raw['25plus'] > 0), codes + ids]
-	return sep
+	# Fill in missing hstructure obs if the person hasn't moved
+	def fillHstructure(self, group):
+		group = group.reset_index(drop=True)
+		if any(0 == group.hstructure): 
+			gr_iter = group.iterrows()
+			for l in gr_iter: 
+				(index, row) = l 
+				if (index > 0) & (row['moved2'] == 5) & (row['hstructure'] == 0): 
+					group.loc[index, 'hstructure'] = group.loc[index-1, 'hstructure']
+			return group
+		else: return group 	
 
-def genUniqueID(namestub): 
-	sep = getSepFrames(namestub)
-	sep['unique_pid'] = sep['ER30001'].map(str)+ "_" + sep['ER30002'].map(str)
-	sep = sep.drop(['ER30001', 'ER30002'], axis=1)
-	(years, codes) = getCodes(namestub)
-	sep = sep.rename(columns= dict(zip(codes, years)))
-	return sep 
+	# Identify "sandwich rows" and strip all rows 
+	# that are not part of a "sandwich" and have BOTH 'age'
+	# and 'moved' values equal to 0
+	def getMissingAges(self, gr): 
+		gr = gr.fillna(0)
+		if 999 in gr['age'].tolist(): 
+			gr.loc[(gr['age'] == 999), 'age'] = 0
+		gr = gr.reset_index()
+		trailing_mask = ((gr['obstype'].isin([0,5])))
+		#trailing_mask = ((gr['age'] > 0) | ((gr.loc[:, vars_list]).sum(axis=1) > 0))
+		if gr.loc[trailing_mask,['age', 'moved']].empty :
+			return gr.loc[trailing_mask,:]
+		else:
+			first = gr.loc[trailing_mask,['age', 'moved']].first_valid_index()
+			last = gr.loc[trailing_mask, ['age', 'moved']].last_valid_index()
+			gr = gr.loc[(gr.index >= first) & (gr.index <= last), :]
+			sandwich_mask = ((gr['age'].cumsum() > 0) & (gr['moved'].cumsum()>0)
+				    & (gr['age'] == 0) & (gr['moved'] == 0))
+			gr.loc[sandwich_mask, ['age', 'moved']] = 0
+			return gr	
 
-def stackdf(namestub): 
-	sep = genUniqueID(namestub)
-	st_sep = pd.DataFrame(sep.set_index('unique_pid').stack())
-	st_sep = st_sep.rename(columns={0:namestub, 'level_1':'year', 'Unnamed: 1': 'year'})
-	return st_sep
+	# Fill in ages using fillAges function from count_observations
+	def fillMissingAges(self, gr): 
+		gr = getMissingAges(gr)	
+		if gr.empty: 
+			return gr
+		else: 
+			gr = fillAges(gr)
+			return gr 		
 
-# Identify "sandwich rows" and strip all rows 
-# that are not part of a "sandwich" and have BOTH 'age'
-# and 'moved' values equal to 0
-def getMissingAges(gr): 
-	gr = gr.fillna(0)
-	if 999 in gr['age'].tolist(): 
-		gr.loc[(gr['age'] == 999), 'age'] = 0
-	gr = gr.reset_index()
-	trailing_mask = ((gr['obstype'].isin([0,5])))
-	#trailing_mask = ((gr['age'] > 0) | ((gr.loc[:, vars_list]).sum(axis=1) > 0))
-	if gr.loc[trailing_mask,['age', 'moved']].empty :
-		return gr.loc[trailing_mask,:]
-	else:
-		first = gr.loc[trailing_mask,['age', 'moved']].first_valid_index()
-		last = gr.loc[trailing_mask, ['age', 'moved']].last_valid_index()
-		gr = gr.loc[(gr.index >= first) & (gr.index <= last), :]
-		sandwich_mask = ((gr['age'].cumsum() > 0) & (gr['moved'].cumsum()>0)
-			    & (gr['age'] == 0) & (gr['moved'] == 0))
-		gr.loc[sandwich_mask, ['age', 'moved']] = 0
-		return gr	
+	# Fill in missing "moved" observations (if at least one other var exists)
+	def fillMissingMoved(self, gr): 
+		print gr['unique_pid'].iloc[0]
+		gr = gr.loc[(gr['obstype'].isin([0,5])), :]
+		gr = fillMissingAges(gr)
+		if gr.empty: 
+			return gr
+		else: 	
+			gr['moved2'] = gr.loc[:, 'moved']
+			missing_move = ((gr['moved'] == 0) & (gr['obstype'].isin([0,5])))
+			gr.loc[missing_move, 'moved2'] = 5
+			gr = gr.loc[(gr['age2']>0), :]
+			return gr
 
-# Fill in ages using fillAges function from count_observations
-def fillMissingAges(gr): 
-	gr = getMissingAges(gr)	
-	if gr.empty: 
-		return gr
-	else: 
-		gr = fillAges(gr)
-		return gr 		
+	# Implement the above functions for each person (group)
+	def implement(self):
+		df = self.df.reset_index()
+		print df.columns.tolist()
+		filled = df.groupby('unique_pid').apply(fillMissingMoved)		
+		df = fillHstructure(filled.groupby('unique_pid').apply(fillHstructure))
+		return df
 
-# Fill in missing "moved" observations (if at least one other var exists)
-def fillMissingMoved(gr): 
-	print gr['unique_pid'].iloc[0]
-	gr = gr.loc[(gr['obstype'].isin([0,5])), :]
-	gr = fillMissingAges(gr)
-	if gr.empty: 
-		return gr
-	else: 	
-		gr['moved2'] = gr.loc[:, 'moved']
- 		#if 'obstype' in vars_list: vars_list.remove('obstype')
- 		#if 'gender' in vars_list: vars_list.remove('gender')
-		#missing_move = ((gr['moved'] == 0) & (gr.loc[:, vars_list].sum(axis=1) > 0))
-		missing_move = ((gr['moved'] == 0) & (gr['obstype'].isin([0,5])))
-		gr.loc[missing_move, 'moved2'] = 5
-		gr = gr.loc[(gr['age2']>0), :]
-		return gr
+			
 
+test = getStackedFrame('numrooms', 'J178305').stackdf()
+test2 = fillMissing(test).implement()
 
-# Fill in missing hstructure obs if the person hasn't moved
-def fillHstructure(group):
-	group = group.reset_index(drop=True)
-	if any(0 == group.hstructure): 
-		gr_iter = group.iterrows()
-		for l in gr_iter: 
-			(index, row) = l 
-			if (index > 0) & (row['moved2'] == 5) & (row['hstructure'] == 0): 
-				group.loc[index, 'hstructure'] = group.loc[index-1, 'hstructure']
-		return group
-	else: return group 
 
 
 # Identify members of the panel who have been institutionalized
