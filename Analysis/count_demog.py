@@ -10,6 +10,7 @@ output_fpath = "M:/senior living/data/psid data/demographics/"
 
 # Rename variables accordingly 
 def renameEduc(df): 
+	print "Renaming educ"
 	# Education 
 	hs_mask = ((df['educ'] >= 0) & (df['educ'] <= 12))
 	somecollege_mask = ((df['educ'] > 12) & (df['educ'] < 16))
@@ -22,9 +23,10 @@ def renameEduc(df):
  	return df 
 
 def renameRace(df):
-	dict_1968 = {1: 'White', 2: 'Black or African-American', 3: 'Puerto Rican, Mexican', 4: 'Other', 5: 'N/A'}
-	dict_1984 = {1: 'White', 2: 'Black or African-American', 3: 'Puerto Rican, Mexican', 7: 'Other', 9: 'N/A'}
-	dict_2011 = {1: 'White', 2: 'Black or African-American', 3: 'American Indian', 4: 'Asian',\
+	print "Renaming race"
+	dict_1968 = {0: 'N/A', 1: 'White', 2: 'Black or African-American', 3: 'Puerto Rican, Mexican', 7:'Other', 4: 'Other', 5: 'N/A', 9: 'N/A'}
+	dict_1984 = {0: 'N/A', 1: 'White', 2: 'Black or African-American', 3: 'Puerto Rican, Mexican', 4:'Asian', 7: 'Other', 9: 'N/A'}
+	dict_2011 = {0: 'N/A', 1: 'White', 2: 'Black or African-American', 3: 'American Indian', 4: 'Asian',\
 		 5: 'Native Hawaiian', 6: 'Mentions color other than black or white', 7: 'Other', 8: "N/A, Don't know",\
 		  9: "N/A, Don't know"}
 	mask_1968 = ((df['year'] == 1968))
@@ -39,15 +41,18 @@ def renameRace(df):
 	return df 
 
 def renameMarital(df): 
+	print "Renaming marital"
 	df.loc[(df['mar'] > 0), 'mar'] = "Married"
 	df.loc[(df['mar'] == 0), 'mar'] = "Single"
 	return df 
 
 def renameGender(df): 
+	print "Renaming gender"
 	df_gr = df.groupby('unique_pid')
 	def recodeGender(group):
 		#print group['unique_pid'].iloc[0] 
-		gender = group.loc[(group['gender'] > 0), 'gender']		
+		if len(~group.loc[(group['gender'] >0), 'gender'].index)>0: gender = group.loc[(group['gender'] >0), 'gender'].iloc[0]
+		else: gender = 0
 		if gender == 1: group.loc[:, 'gender'] = 'Male' 
 		if gender == 2: group.loc[:, 'gender'] = 'Female'
 		return group
@@ -118,12 +123,25 @@ def calcMedian(df, var, direction):
 	output = output.rename(columns={x: direction+'_'+x for x in output.columns.tolist()})
 	return output
 
-
+# Count number of people in each demographic category by age and housing trans
+def countByDemo(df, dem):
+	#dfgr = df.groupby([dem, 'age'])
+	hcats = ['Trans_to', 'Trans_from', 'Housing Category']
+	for c in hcats: 
+		tempdf = df.loc[df[c] != '0', :]
+		grdf = pd.DataFrame(tempdf.groupby([dem, 'age'])[c].value_counts().reset_index())
+		grdf = grdf.rename(columns={'level_2':c, 0:'count'})
+		temp_grdf = pd.DataFrame()
+		for d in df[dem].value_counts().index.tolist(): 
+			output = grdf.loc[grdf[dem]==d, :]
+			output = output.pivot('age', c, 'count')
+			output[dem] = d
+ 			temp_grdf = temp_grdf.append(output)
+		temp_grdf.to_csv("M:/count" + dem + ".csv", index_label='age')
 
 # Get unweighted counts by demographic variables EXCEPT wealth/ income
 # Read in full stacked df
-df = pd.read_csv("M:/senior living/data/psid data/allvars_st.csv")
-
+df = pd.read_csv("M:/senior living/data/psid data/complete_st.csv")
 
 # Rename race, education, gender, and marital variables 
 df = renameRace(df)
@@ -131,8 +149,15 @@ df = renameEduc(df)
 df = renameGender(df)
 df = renameMarital(df)
 
+# Get counts by race, education, gender, and marital status 
+# for each age.
+demo = ['race', 'educ', 'gender', 'mar']
+for dem in demo: 
+	countByDemo(df, dem)
+
+
 # Calculate counts by race, education, gender, and marital status 
-getDemog(df)
+#getDemog(df)
 
 # Get median and mean income by year
 #getIncomeStats(df, 'income')
