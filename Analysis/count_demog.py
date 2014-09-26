@@ -123,24 +123,24 @@ def calcMedian(df, var, direction):
 	output = output.rename(columns={x: direction+'_'+x for x in output.columns.tolist()})
 	return output
 
-# Count number of people in each demographic category by age and housing trans
+# Count number of people in each demographic category by age and housing OCCUPANCY
 def countByDemo(df, dem):
-	#dfgr = df.groupby([dem, 'age'])
-	hcats = ['Trans_to', 'Trans_from', 'Housing Category']
+	hcats = ['Housing Category']
+	temp_grdf = pd.DataFrame()
 	for c in hcats: 
 		tempdf = df.loc[df[c] != '0', :]
 		grdf = pd.DataFrame(tempdf.groupby([dem, 'age'])[c].value_counts().reset_index())
 		grdf = grdf.rename(columns={'level_2':c, 0:'count'})
-		temp_grdf = pd.DataFrame()
 		for d in df[dem].value_counts().index.tolist(): 
 			output = grdf.loc[grdf[dem]==d, :]
 			output = output.pivot('age', c, 'count')
 			output[dem] = d
+			#newcols = {n: c+'_'+n for n in output.columns.tolist()}
  			temp_grdf = temp_grdf.append(output)
-		temp_grdf.to_csv("M:/count" + dem + ".csv", index_label='age')
 
 # Get unweighted counts by demographic variables EXCEPT wealth/ income
 # Read in full stacked df
+'''
 df = pd.read_csv("M:/senior living/data/psid data/complete_st.csv")
 
 # Rename race, education, gender, and marital variables 
@@ -148,13 +148,14 @@ df = renameRace(df)
 df = renameEduc(df)
 df = renameGender(df)
 df = renameMarital(df)
-
+df.to_csv("M:/test.csv")
+'''
 # Get counts by race, education, gender, and marital status 
 # for each age.
-demo = ['race', 'educ', 'gender', 'mar']
+df = pd.read_csv("M:/test.csv")
+demo = ['race'] #'educ', 'gender', 'mar']
 for dem in demo: 
 	countByDemo(df, dem)
-
 
 # Calculate counts by race, education, gender, and marital status 
 #getDemog(df)
