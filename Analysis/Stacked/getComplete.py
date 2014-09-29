@@ -23,12 +23,14 @@ It uses the getStackedFrame, fillMissing, and identifyHousing modules.
 mostrecent = "J178305" 
 
 # Edit the output file below
-fpath_output = "M:/test.csv"
+fpath_output = "M:/complete_st.csv"
 
 # Edit the varlist below
+
 varlist = ['hstructure', 'htenure', 'moved', 'indweight', 'numrooms', \
-			'seniorh', 't_seniorh', 'relhead', 'whymoved', 'tinst', \
+			'seniorh', 't_seniorh', 'relhead', 'whymoved', 'tinst', 'famwt',\
 			'income', 'race', 'gender', 'mar', 'educ', 'obstype', 'impwealth', 'health']
+
 
 # Create a simple stacked dataframe using the MOST RECENT
 # PSID raw data and varlist below

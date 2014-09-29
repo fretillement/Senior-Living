@@ -40,9 +40,12 @@ class getStackedFrame:
 		personnum = getStackedFrame('personnum', mostrecent)
 		#obstype = getStackedFrame('obstype', mostrecent)
 		ids = list(set(id1968.getCodes()[1])) + list(set(personnum.getCodes()[1])) #+ list(set(obstype.getCodes()[1]))
-		raw = pd.read_csv(self.rawfile, usecols=cols+ages+ids)
-		raw['25plus'] = (raw.loc[:, ages] >= 25).sum(axis=1) > 0 
-		raw = raw.loc[raw['25plus']>0, cols+ids]
+		#raw = pd.read_csv(self.rawfile, usecols=cols+ages+ids)
+		raw = pd.read_csv(self.rawfile)
+		for c in cols: 
+			if c not in list(raw): print c
+		#raw['25plus'] = (raw.loc[:, ages] >= 25).sum(axis=1) > 0 
+		#raw = raw.loc[raw['25plus']>0, cols+ids]
 		return raw
 
 	def genUniqueID(self): 
