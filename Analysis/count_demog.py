@@ -140,7 +140,7 @@ def countByDemo(df, dem):
 
 # Get unweighted counts by demographic variables EXCEPT wealth/ income
 # Read in full stacked df
-'''
+
 df = pd.read_csv("M:/senior living/data/psid data/complete_st.csv")
 
 # Rename race, education, gender, and marital variables 
@@ -149,11 +149,11 @@ df = renameEduc(df)
 df = renameGender(df)
 df = renameMarital(df)
 df.to_csv("M:/test.csv")
-'''
+
 # Get counts by race, education, gender, and marital status 
 # for each age.
 df = pd.read_csv("M:/test.csv")
-demo = ['race'] #'educ', 'gender', 'mar']
+demo = ['race','educ', 'gender', 'mar']
 for dem in demo: 
 	countByDemo(df, dem)
 

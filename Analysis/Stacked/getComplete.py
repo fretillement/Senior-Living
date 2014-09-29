@@ -31,7 +31,7 @@ varlist = ['hstructure', 'htenure', 'moved', 'indweight', 'numrooms', \
 			'seniorh', 't_seniorh', 'relhead', 'whymoved', 'tinst', 'famwt',\
 			'income', 'race', 'gender', 'mar', 'educ', 'obstype', 'impwealth', 'health']
 
-
+'''
 # Create a simple stacked dataframe using the MOST RECENT
 # PSID raw data and varlist below
 print "Construct simple person-year stacked df"
@@ -41,14 +41,16 @@ for v in varlist:
 	temp = getStackedFrame(v, mostrecent).implement()
 	complete = complete.merge(temp, right_index=True, left_index=True, how='outer')
 complete.to_csv("M:/test.csv")
-
+'''
 # Fill in age and moved values for present individuals 
 print "Fill in age and moved values for present individuals"
-complete = complete.reset_index()
-complete = complete.rename(columns={'level_1': 'year'})
+complete = pd.read_csv("M:/test.csv")
+if 'unique_pid' not in list(complete): complete = complete.reset_index()
+print list(complete)
+complete = complete.rename(columns={'level_1': 'year', 'Unnamed: 1': 'year'})
 complete = complete.groupby('unique_pid').apply(implementFill)
-complete = complete.reset_index()
-complete.to_csv("M:/test.csv", index=False)
+if 'unique_pid' not in list(complete): complete = complete.reset_index()
+complete.to_csv("M:/test.csv", index=True)
 
 # Identify transition types
 print "Identify housing transitions"
