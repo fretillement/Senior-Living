@@ -48,10 +48,9 @@ df = pd.read_csv('M:\Senior Living\Data\PSID Data\complete_st.csv')
 year_df = yearlyMedianWealth(df)
 
 
-def yearlyWealthPercentile(age_df, year_df=year_df):
+def yearlyWealthPercentile(age_df, years, year_df=year_df):
 	# Keep only years for which there IS wealth data 
-	year_mask = ((age_df['year'].isin([1984, 1989, 1994, 1999, 2001,\
-								  2003, 2005, 2007, 2009, 2011])))
+	year_mask = ((age_df['year'].isin(years)))
 	age_df = age_df.loc[year_mask,:]
 	if age_df.empty: return pd.Series()
 
@@ -67,15 +66,21 @@ def yearlyWealthPercentile(age_df, year_df=year_df):
 	avg_pctile = medians.mean(axis=0)
 	return avg_pctile
 
-def avgPercentileByAge(complete_df, year_df=year_df): 
-	output = complete_df.groupby('age2').apply(yearlyWealthPercentile)
+def avgPercentileByAge(complete_df, years, year_df=year_df): 
+	fn = lambda x: yearlyWealthPercentile(x, years)
+	output = complete_df.groupby('age2').apply(fn)
 	output = output.reset_index()
 	output = output.rename(columns={'age2': 'age', 0L: 'Share of median wealth'})
 	output = output.pivot('age', 'Housing Category', 'Share of median wealth')
 	return output
 
-output = avgPercentileByAge(df)
-output.to_csv('M:/senior living/data/psid data/Demographics/pctile_wealth.csv')
+
+year_lists =  [[2003, 2005, 2007, 2009, 2011], [1984, 1989, 1994, 1999, 2001]]
+for years in year_lists: 
+	output = avgPercentileByAge(df, years)
+	year_stub = str(int(min(years))) + '-' + str(int(max(years)))
+	output.to_csv('M:/senior living/data/psid data/Demographics/pctile_wealth'+ year_stub + '.csv')
+	print years
 
 
 '''
