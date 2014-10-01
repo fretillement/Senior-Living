@@ -5,7 +5,8 @@
 clear 
 
 *Point to most recent raw dataset
-local recent J178305
+local recent J178704
+*local recent J178305
 
 *Run dictionary file to get labels 
 do "M:/senior living/data/psid data/`recent'/`recent'.do" 
