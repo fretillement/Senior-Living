@@ -51,7 +51,7 @@ def fillMissingAges(self):
 def fillMissingMoved(self):
 	gr = self
 	#gr = gr.reset_index()
-	print gr['unique_pid'].iloc[0]
+	#print gr['unique_pid'].iloc[0]
 	gr = gr.loc[(gr['obstype'].isin([0,5])), :]
 	gr = fillMissingAges(gr)
 	if gr.empty: 

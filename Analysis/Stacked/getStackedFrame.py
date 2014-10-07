@@ -28,24 +28,23 @@ class getStackedFrame:
 		values = pd.read_csv(varfile, usecols = [self.namestub, 'year']).dropna()
 		years = map(int, values['year'].tolist())
 		codes = values[self.namestub].tolist()
-		#print years,codes
 		return [years, codes]
 
 	def readRaw(self, varfile=var_file):
 		mostrecent = self.mostrecent 
-		#ages = getStackedFrame('age', mostrecent).getCodes()[1]
+		ages = getStackedFrame('age', mostrecent).getCodes()[1]
 		n = self.namestub
 		cols = list(set(getStackedFrame(n, mostrecent).getCodes()[1])) 
 		id1968 = getStackedFrame('id1968', mostrecent)
 		personnum = getStackedFrame('personnum', mostrecent)
-		#obstype = getStackedFrame('obstype', mostrecent)
+		obstype = getStackedFrame('obstype', mostrecent)
 		ids = list(set(id1968.getCodes()[1])) + list(set(personnum.getCodes()[1])) #+ list(set(obstype.getCodes()[1]))
 		raw = pd.read_csv(self.rawfile, usecols=cols+ids) #+ages
-		for x in cols: 
-			if x not in list(raw): print x
-		#raw = pd.read_csv(self.rawfile)
-		#raw['25plus'] = (raw.loc[:, ages] >= 25).sum(axis=1) > 0 
-		#raw = raw.loc[raw['25plus']>0, cols+ids]
+		#for x in cols: 
+		#	if x not in list(raw): print x
+		raw = pd.read_csv(self.rawfile)
+		raw['25plus'] = (raw.loc[:, ages] >= 25).sum(axis=1) > 0 
+		raw = raw.loc[raw['25plus']>0, cols+ids]
 		return raw
 
 	def genUniqueID(self): 

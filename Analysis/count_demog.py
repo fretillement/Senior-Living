@@ -1,6 +1,7 @@
 from __future__ import division
 import pandas as pd 
 
+
 '''
 This script returns counts by housing categories of economic &
 demographic characteristics of PSID panel members (file: J178148_edits.csv)
@@ -81,31 +82,39 @@ def getDemog(df, demvars=['gender', 'mar', 'race', 'educ'], output_fpath=output_
 
 # Call functions to calc mean and median income and wealth
 # Write to a csv
-def getIncomeStats(df, var, output_fpath=output_fpath): 
+#timespan = [1973, 1974, 1982]
+def getIncomeStats(df, var, timespan, output_fpath): 
 	inc_yr_mask = ((df[var]>0) & (~df['year'].isin([1973, 1974, 1982])))
 	# Select only nonzero income values and years for which there is info on 
 	# the person's housing structure 
-	df = df.loc[inc_yr_mask, [var, 'indweight', 'year', 'unique_pid',\
+	t_mask = ((df['year'].isin(timespan)))
+
+	df = df.loc[inc_yr_mask & t_mask, [var, 'indweight', 'year', 'unique_pid',\
 	 'Housing Category', 'Trans_to', 'Trans_from', 'moved', 'hstructure']]
 	
 	# Generate a weighted income variable 
 	df['weighted_var'] = df[var] * df['indweight']
 	
-	#print df.loc[(df['Trans_from'] != '0') & (df['year']==1975), 'Trans_from'].value_counts()
-	print df.loc[(df['Housing Category']=='0'), 'hstructure'].head(30)
+
+	timestub = str(int(min(timespan))) + '_' + str(int(max(timespan)))
 
 	# Calculate and write median to csv for each direction of transtion (to, from, current)
 	med_output = calcMedian(df, var, 'Trans_to')
 	med_output = med_output.merge(calcMedian(df, var, 'Trans_from'), right_index=True, left_index=True)
 	med_output = med_output.merge(calcMedian(df, var, 'Housing Category'), right_index=True, left_index=True)
-	med_output.to_csv(output_fpath+'med_' + var + '.csv')
-	
+	#med_output.to_csv(output_fpath+'med_' + var + '_' + timestub + '.csv', index=False)
+	print 'writing'
+	med_output.to_csv('med'+var+timestub+'.csv', index=False)
+
 	# Calculate and write weighted avg to csv 
 	avg_output = calcWavg(df, 'Trans_to')
 	avg_output = avg_output.merge(calcWavg(df, 'Trans_from'), right_index=True, left_index=True)
 	avg_output = avg_output.merge(calcWavg(df, 'Housing Category'), right_index=True, left_index=True)
-	avg_output.to_csv(output_fpath+'avg_' + var + '.csv')
-	
+	#avg_output.to_csv(output_fpath+'avg_' + var + '_' + timestub +'.csv', index=False)
+	print 'writing'
+	avg_output.to_csv('avg'+var+timestub+'.csv', index=False)
+
+
 # Calculate weighted average for a given direction (to, from, or current)	
 def calcWavg(df, direction): 
 	wavg = lambda x: x['weighted_var'].sum() / x['indweight'].sum()
@@ -138,17 +147,24 @@ def countByDemo(df, dem):
 			#newcols = {n: c+'_'+n for n in output.columns.tolist()}
  			temp_grdf = temp_grdf.append(output)
 
+
+
+
+
+
+'''
 # Get unweighted counts by demographic variables EXCEPT wealth/ income
 # Read in full stacked df
-
-df = pd.read_csv("M:/senior living/data/psid data/complete_st.csv")
+#df = pd.read_csv("M:/senior living/data/psid data/complete_st.csv")
+df = pd.read_csv('M:/test.csv')
 
 # Rename race, education, gender, and marital variables 
 df = renameRace(df)
 df = renameEduc(df)
 df = renameGender(df)
 df = renameMarital(df)
-df.to_csv("M:/test.csv")
+df.to_csv("M:/senior living/data/psid data/complete_st.csv")
+
 
 # Get counts by race, education, gender, and marital status 
 # for each age.
@@ -156,6 +172,9 @@ df = pd.read_csv("M:/test.csv")
 demo = ['race','educ', 'gender', 'mar']
 for dem in demo: 
 	countByDemo(df, dem)
+'''
+
+
 
 # Calculate counts by race, education, gender, and marital status 
 #getDemog(df)

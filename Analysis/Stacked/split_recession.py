@@ -42,30 +42,6 @@ def countByAgeTrans(transvar, df):
 	output = output.pivot('age', transvar, 'count')
 	return output 
 
-def mergeBeale(df=df):
-	beale_df = pd.read_csv('M:/Senior Living/Data/PSID Data/Beale Urbanicity/newbeale8511.csv')
-	#data = pd.read_csv('M:/complete_st.csv')
-	data = df.drop(['Unnamed: 1', 'unique_pid.1'], axis=1)
-	beale_df = beale_df.rename(columns={'CBV2':'year', 'CBV3':'famid', 'CBV4': 'urban-rural code'})
-
-	# Group data by 'famid' and year 
-	data_gr = data.groupby(['famid', 'year'])
-	beale_gr = beale_df.groupby(['famid', 'year'])
-
-	# Go through each famid-year group in the data and look up their urban code
-	def lookup(group, beale_gr): 
-		key = (group['famid'].iloc[0], group['year'].iloc[0])
-		if (key[0] > 0) and (key[1] >= 1985): 
-			code = beale_gr.get_group(key)
-			#print code
-			#print type(code)
-			group['urban-rural code'] = code['urban-rural code'].iloc[0]
-			#print group['urban-rural code']
-		return group
-
-	lookup_fn = lambda x: lookup(x, beale_gr)
-	output = data_gr.apply(lookup_fn)
-	return output
 
 
 def getIncomeStats(df, var, timespan, output_fpath): 
@@ -107,11 +83,11 @@ for t in timespans:
 	#getIncomeStats(df, 'impwealth', t, output_fpath)
 	transtypes = ['Trans_to', 'Trans_from', 'Housing Category']
 	for transvar in transtypes: 
-		#output = countByAgeTrans(transvar, temp_df)	
+		output = countByAgeTrans(transvar, temp_df)	
 		datestub = str(int(min(t)))+'-'+str(int(max(t)))
-		output = countByAgeUrbanTrans(transvar, datestub, temp_df)
-		output.to_csv('M:/senior living/data/psid data/later third/'+ transvar + 'urbrural' + datestub+'.csv', index=False)
-		print output.head(10)
+		#output = countByAgeUrbanTrans(transvar, datestub, temp_df)
+		output.to_csv('M:/senior living/data/psid data/later third/'+ transvar + datestub+'.csv')
+		#print output.head(10)
 	
 
 
