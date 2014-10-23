@@ -60,7 +60,7 @@ def renameGender(df):
 	output = df_gr.apply(recodeGender)
 	return output
 
-
+# Get counts   
 def getDemog(df, demvars=['gender', 'mar', 'race', 'educ'], output_fpath=output_fpath):
 	#df = renameGender(renameMarital(renameRace(renameEduc(df))))
 	#df = df.drop(['Unnamed: 1', 'index', 'unique_pid.1'], axis=1)

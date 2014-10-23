@@ -45,18 +45,17 @@ def countByAgeTrans(transvar, df):
 
 
 def getIncomeStats(df, var, timespan, output_fpath): 
-	inc_yr_mask = ((df[var]>0) & (~df['year'].isin([1973, 1974, 1982])))
-	# Select only nonzero income values and years for which there is info on 
-	# the person's housing structure 
+	# Select only nonzero income values and years in timespan for which there is 
+	# info on the person's housing structure
+	inc_yr_mask = ((df[var]>0) & (~df['year'].isin([1973, 1974, 1982])))	 	
 	t_mask = ((df['year'].isin(timespan)))
-
 	df = df.loc[inc_yr_mask & t_mask, [var, 'indweight', 'year', 'unique_pid',\
 	 'Housing Category', 'Trans_to', 'Trans_from', 'moved', 'hstructure']]
 	
 	# Generate a weighted income variable 
 	df['weighted_var'] = df[var] * df['indweight']
 	
-
+	# Generate a time string for output file
 	timestub = str(int(min(timespan))) + '_' + str(int(max(timespan)))
 
 	# Calculate and write median to csv for each direction of transtion (to, from, current)
@@ -75,20 +74,20 @@ def getIncomeStats(df, var, timespan, output_fpath):
 	print 'writing'
 	avg_output.to_csv('avg'+var+timestub+'.csv')
 
-
-timespans = [range(2007,2013,2), range(1999,2007,2)]
-output_fpath = 'M:/senior living/data/psid data/later third/'
-for t in timespans: 
-	temp_df = df.loc[df['year'].isin(t), :]
-	#getIncomeStats(df, 'impwealth', t, output_fpath)
-	transtypes = ['Trans_to', 'Trans_from', 'Housing Category']
-	for transvar in transtypes: 
-		output = countByAgeTrans(transvar, temp_df)	
-		datestub = str(int(min(t)))+'-'+str(int(max(t)))
-		#output = countByAgeUrbanTrans(transvar, datestub, temp_df)
-		output.to_csv('M:/senior living/data/psid data/later third/'+ transvar + datestub+'.csv')
-		#print output.head(10)
-	
+if "__name__" == "__main__":
+	timespans = [range(2007,2013,2), range(1999,2007,2)]
+	output_fpath = 'M:/senior living/data/psid data/later third/'
+	for t in timespans: 
+		temp_df = df.loc[df['year'].isin(t), :]
+		#getIncomeStats(df, 'impwealth', t, output_fpath)
+		transtypes = ['Trans_to', 'Trans_from', 'Housing Category']
+		for transvar in transtypes: 
+			output = countByAgeTrans(transvar, temp_df)	
+			datestub = str(int(min(t)))+'-'+str(int(max(t)))
+			#output = countByAgeUrbanTrans(transvar, datestub, temp_df)
+			output.to_csv('M:/senior living/data/psid data/later third/'+ transvar + datestub+'.csv')
+			#print output.head(10)
+		
 
 
 

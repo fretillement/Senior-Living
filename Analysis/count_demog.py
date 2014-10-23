@@ -133,7 +133,7 @@ def calcMedian(df, var, direction):
 	return output
 
 # Count number of people in each demographic category by age and housing OCCUPANCY
-def countByDemo(df, dem):
+def countHousingByDemo(df, dem):
 	hcats = ['Housing Category']
 	temp_grdf = pd.DataFrame()
 	for c in hcats: 
@@ -171,9 +171,7 @@ df.to_csv("M:/senior living/data/psid data/complete_st.csv")
 df = pd.read_csv("M:/test.csv")
 demo = ['race','educ', 'gender', 'mar']
 for dem in demo: 
-	countByDemo(df, dem)
-'''
-
+	countHousingByDemo(df, dem)
 
 
 # Calculate counts by race, education, gender, and marital status 
@@ -184,3 +182,4 @@ for dem in demo:
 
 # Get median and mean wealth by year 
 #getIncomeStats(df, 'impwealth')
+'''

@@ -12,18 +12,14 @@ def w_median(df, var='impwealth', weight='famwt'):
 	# Sort impwealth in ascending order 
 	df = df.sort(var)
 
-	# Get a cumulative sum of weight
-	df['w_cumsum'] = df[weight].cumsum(axis=1)
+	# Get 50% of area underneath distribution of var
+	half_area = .5*(df[var] * df[weight]).sum()
 
-	# Find the 50th percentile of observations
-	p50 = df[weight].sum()*(.5)
+	# Get 50% of the sum of weights 
+	half_weights = .5*(df[weight].sum())
 
-	# Get the corresponding index 
-	p50_index = df.loc[df['w_cumsum'] <= p50, var].last_valid_index()
-	if (len(df.index) == 1): p50_index = df[var].last_valid_index() # If there's only one obs return the same index
-
-	# The median is then the wealth measure that pertains to the 50th percentile index
-	median = df.ix[p50_index, var]
+	# Solve for median and return
+	median = half_area/ half_weights
 	return median
 
 
@@ -39,17 +35,15 @@ def yearlyMedianWealth(complete_df):
 	yr_complete_df = complete_df.groupby('year')
 
 	# For each yearly group, compute median income
-	#med = lambda x: w_median(x)
 	output = pd.DataFrame(yr_complete_df['impwealth'].median())
 	return output 
-
 
 df = pd.read_csv('M:\Senior Living\Data\PSID Data\complete_st.csv')
 year_df = yearlyMedianWealth(df)
 
 
 def yearlyWealthPercentile(age_df, years, year_df=year_df):
-	# Keep only years for which there IS wealth data 
+	# Keep only years for which there IS wealth data in the timespan of interest (years)
 	year_mask = ((age_df['year'].isin(years)))
 	age_df = age_df.loc[year_mask,:]
 	if age_df.empty: return pd.Series()
@@ -58,12 +52,12 @@ def yearlyWealthPercentile(age_df, years, year_df=year_df):
 	medianshare = lambda x: pd.DataFrame(x['impwealth'].median() / year_df.ix[x['year'], 'impwealth']).iloc[0]
 	medians = age_df.groupby(['year', 'Housing Category']).apply(medianshare)
 	medians = medians.reset_index()
-	#
 	medians = medians.pivot('year', 'Housing Category', 'impwealth')
-	#return medians
+	#print medians
 
 	# Calculate average percentile over the years 
 	avg_pctile = medians.mean(axis=0)
+
 	return avg_pctile
 
 def avgPercentileByAge(complete_df, years, year_df=year_df): 
@@ -72,15 +66,23 @@ def avgPercentileByAge(complete_df, years, year_df=year_df):
 	output = output.reset_index()
 	output = output.rename(columns={'age2': 'age', 0L: 'Share of median wealth'})
 	output = output.pivot('age', 'Housing Category', 'Share of median wealth')
+
+	# Set negative median values to 0
+	output.loc[(output['Senior housing'] < 0), 'Senior housing'] = 0
 	return output
 
 
-year_lists =  [[2003, 2005, 2007, 2009, 2011], [1984, 1989, 1994, 1999, 2001]]
-for years in year_lists: 
-	output = avgPercentileByAge(df, years)
-	year_stub = str(int(min(years))) + '-' + str(int(max(years)))
-	output.to_csv('M:/senior living/data/psid data/Demographics/pctile_wealth'+ year_stub + '.csv')
-	print years
+#year_lists =  [[2003, 2005, 2007, 2009, 2011], [1984, 1989, 1994, 1999, 2001]]
+
+year_lists = [[1999, 2001, 2003, 2005], [2007, 2009, 2011]]
+
+if __name__ == "__main__":
+	for years in year_lists: 
+		output = avgPercentileByAge(df, years)
+		year_stub = str(int(min(years))) + '-' + str(int(max(years)))
+		print output.head(20)
+		output.to_csv('M:/senior living/data/psid data/Demographics/pctile_wealth'+ year_stub + '.csv')
+		#print years
 
 
 '''

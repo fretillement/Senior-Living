@@ -67,7 +67,7 @@ if __name__ == "__main__":
 	'''
 	Edit to point to the most recent raw file
 	'''
-	mostrecent = "J178704" 
+	#mostrecent = "J178730" 
 	#Set namestub list 
 	ids_list = ['id1968', 'personnum', 'age']
 	vars_list = ['hstructure', 'htenure', 'moved', 'indweight', 'numrooms', \

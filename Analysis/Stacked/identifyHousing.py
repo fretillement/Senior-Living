@@ -104,7 +104,7 @@ class identifyHousing:
 				gr_iter = gr.iterrows()
 				for l in gr_iter: 
 					(index, line) = l
-					print index
+					#print index
 					if line['moved2'] == 1 and index-1 in gr.index: gr.loc[index, 'Trans_from'] = gr.loc[index-1, 'Housing Category']		
 			return gr 
 		df = grouped.apply(getFrom)

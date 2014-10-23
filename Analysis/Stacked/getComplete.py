@@ -1,8 +1,8 @@
 from getStackedFrame import *
 from fillMissing import *
 from identifyHousing import *
+from count_demog import *
 import pandas as pd
-
 
 
 '''
@@ -26,7 +26,7 @@ mostrecent = "J178730"
 fpath_output = "M:/complete_st.csv"
 
 # Edit the varlist below
-varlist = ['famid', 'hstructure', 'htenure', 'moved', 'indweight', 'numrooms', \
+varlist = ['famwt', 'famid', 'hstructure', 'htenure', 'moved', 'indweight', 'numrooms', \
 			'seniorh', 't_seniorh', 'relhead', 'whymoved', 'tinst', \
 			'race', 'gender', 'mar', 'educ', 'obstype', 'impwealth', 'health']
 
@@ -37,10 +37,11 @@ varlist = ['famid', 'hstructure', 'htenure', 'moved', 'indweight', 'numrooms', \
 def mergeBeale(df):
 	beale_df = pd.read_csv('M:/Senior Living/Data/PSID Data/Beale Urbanicity/newbeale8511.csv')
 	#df = pd.read_csv('M:/complete_st.csv')
-	data = df.drop(['Unnamed: 1', 'unique_pid.1'], axis=1)
+	if 'unique_pid.1' in list(df): df = df.drop(['unique_pid.1'], axis=1)
+	if 'Unnamed' in list(df): df = df.rename(columns={'Unnamed': 'year'})
 	beale_df = beale_df.rename(columns={'CBV2':'year', 'CBV3':'famid', 'CBV4': 'urban-rural code'})
 	# Group data by 'famid' and year 
-	data_gr = data.groupby(['famid', 'year'])
+	data_gr = df.groupby(['famid', 'year'])
 	beale_gr = beale_df.groupby(['famid', 'year'])
 	# Go through each famid-year group in the data and look up their urban code
 	def lookup(group, beale_gr): 
@@ -59,7 +60,10 @@ for v in varlist:
 	print "		"+v
 	temp = getStackedFrame(v, mostrecent).implement()
 	complete = complete.merge(temp, right_index=True, left_index=True, how='outer')
-complete = complete.rename(columns={0: 'year'})
+complete = complete.reset_index()
+complete = complete.rename(columns={0: 'year', 'level_1': 'year'})
+complete.to_csv("M:/test.csv")
+print list(complete)
 complete = mergeBeale(complete)
 complete.to_csv("M:/test.csv")
 
@@ -78,6 +82,25 @@ print "Identify housing transitions"
 complete = pd.read_csv("M:/test.csv")
 complete = identifyHousing(complete)
 complete = complete.implement()
+complete.to_csv("M:/test.csv", index=True)
+
+# Fill in demographic variables 
+#complete = pd.read_csv("M:/test.csv")
+complete = pd.read_csv(fpath_output)
+complete = renameRace(complete)
+complete = renameMarital(complete)
+complete = renameGender(complete)
+complete_st.to_csv("M:/test.csv")
+
+# Create urban-rural categories
+df['urban-rural category'] = "No info"
+urban_mask = ((df['urban-rural code'].isin(range(1,6))))
+rural_mask = ((df['urban-rural code'].isin(range(6,9))))
+df.loc[urban_mask, 'urban-rural category'] = 'urban'
+df.loc[rural_mask, 'urban-rural category'] = 'rural'
+df.to_csv('complete_st', index=False)
+
+
 
 # Write to a csv file 
 print "Writing"

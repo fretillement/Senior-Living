@@ -63,7 +63,7 @@ def fillMissingMoved(self):
 		gr = gr.loc[(gr['age2']>0), :]
 		return gr
 
-	# Implement the above functions for each person (group)
+# Implement the above functions for each person (group)
 def implementFill(group):
 	gr = fillMissingMoved(group)
 	gr = fillHstructure(gr)
