@@ -64,7 +64,7 @@ if __name__ == "__main__":
 	#df = df.loc[df['Trans_to'] == 'SFO/ SFR', :]
 
 	# Select those who moved to MF 
-	df = df.loc[df['Trans_to'] == 'MFR/ MFO', :]
+	#df = df.loc[df['Trans_to'] == 'MFR/ MFO', :]
 
 	# Select those who moved to Senior
 	#df = df.loc[df['Trans_to'] == 'Senior housing', :]
@@ -83,7 +83,17 @@ if __name__ == "__main__":
 	# Select those who are occupied in shared
 	#df= df.loc[df['Housing Category']=='Shared', :]
 
+	transvars = ['Trans_to', 'Trans_from', 'Housing Category']
+	for t in transvars: 
+		df.loc[df[t] == 'Senior housing', t] = "Senior"
+		df.loc[df[t] == 'SFO/ SFR', t] = "SF"
+		df.loc[df[t] == 'MFR/ MFO', t] = "MF"
+		df.loc[df[t] == 'Other/ Mobile Home', t] = "Other"
+	
+	df.to_csv('M:/senior living/data/psid data/complete_st.csv')
 
+
+	'''
 	# Generate 15-year age buckets
 	df = ageBuckets(df)
 
@@ -126,7 +136,7 @@ if __name__ == "__main__":
 	# Merge medians with percents; write to csv
 	output = pcts.join(meds, how='outer')
 	output.to_csv('15yr_demos_toMF.csv')
-
+	'''
 	'''
 	# Create urban-rural categories
 	df['urban-rural category'] = "No urbanicity info"
