@@ -24,7 +24,6 @@ data <- data[, !(names(data) %in% drops)]
 data$agebucket = cut(data$age2, c(0, 15, 30, 45, 60, 75, 90, 105, 125))
 xtabs(~year+agebucket, data)
 data$agebucket = factor(data$agebucket)
-
 #### Clean up dependent vars: educ
 data$educ[data$educ > 17] = 0
 
