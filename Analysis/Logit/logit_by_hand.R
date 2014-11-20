@@ -1,5 +1,7 @@
-# This code runs a weighted logit model by hand with optim() on PSID data obtained from the get_complete script.
-# See get_complete.py for more info
+# This code contains all functions needed to run a weighted logit model by hand with optim() 
+# It uses PSID data obtained from the get_complete script.
+# See get_complete.py for more info about the raw PSID data
+# See testlogit_by_hand.R for test code and implementation
 
 # Import libraries
 library(dummies)
@@ -28,6 +30,16 @@ genDummies <- function(varnames, data, max.level) {
 }
 
 checkFactor <- function(varnames, data, max.level) {
+# Checks whether each variable in varnames is a categorical variable
+#
+# Args: 
+#    varnames: array of string column names to be verified
+#    data: the original dataframe
+#    max.level: the maximum number of unique values a var can take to be classified as categorical
+#  
+# Returns:  
+#    orig: vector of column names that are continuous vars
+#    cats: vector of categorical var column names  
   cats <- character()
   orig <- character()
   for(v in varnames) { 
@@ -41,7 +53,6 @@ checkFactor <- function(varnames, data, max.level) {
   }
   return(list(orig, cats))
 }
-
 
 
 getAgeBucket <- function(data, edges) { 
@@ -124,11 +135,3 @@ minLogLikelihood <- function(betas, x, y) {
   fit <- mle(calcLogLikelihood, betas, x=x, y=y)
   return(fit)
 }
-
-
-# Set working directory 
-#dir <- "M:/senior living/data/psid data/"
-#setwd(dir)
-
-# Read in the data 
-#df <- read.csv("complete_st.csv")

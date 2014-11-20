@@ -28,7 +28,7 @@ cat.x.vars <- x.labels[!x.labels %in% cont.x.vars]
 x.vars <- c(cont.x.vars, dummy.x.vars)
 
 # Select beta starting values
-betas <- c(-7, rep(7, length(x.vars)))
+betas <- c(1, rep(7, length(x.vars)))
 betasList <- list("beta1"=)
 
 # Get dummies and agebucket variable
