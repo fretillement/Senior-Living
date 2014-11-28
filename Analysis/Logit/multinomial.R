@@ -1,7 +1,7 @@
 require(foreign)
-require(ggplot)
 require(nnet)
 require(dummies)
+require(plyr)
 
 dir <- "M:/senior living/code/senior-living/analysis/logit/logit_by_hand.R"
 source(dir)
