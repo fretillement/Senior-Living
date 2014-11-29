@@ -18,6 +18,8 @@ PSID raw data set with the vars in varlist below, and the beale urbanicty variab
 4. Writes the resulting dataframe to a csv (fpath_output). 
 
 It uses the getStackedFrame, fillMissing, and identifyHousing modules. 
+
+NOTE: see clean_psid.do for the stata code for cleaning raw psid data
 '''
 # Edit most recent PSID file below
 mostrecent = "J178730" 
@@ -105,3 +107,10 @@ df.to_csv('complete_st', index=False)
 # Write to a csv file 
 print "Writing"
 complete.to_csv(fpath_output, index=False)
+
+# Optional: Stata commands to fill in missing urban.rural.code values
+#insheet using "M:/senior living/data/Psid data/complete_st.csv"
+#by unique_pid, sort: gen urbancode85 = urbanruralcode if (moved != 1) & (year == 1985)
+#by unique_pid, sort: gen famcount = _n
+#by unique_pid, sort: replace urbanruralcode = urbancode85[famcount+1] if (year == 1984) & (urbancode > 0)
+#outsheet using "M:/senior living/data/Psid data/complete_st.csv", comma replace

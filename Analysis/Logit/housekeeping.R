@@ -72,17 +72,18 @@ fillInUrban <- function(data) {
 #
 # Returns: 
 #    data: data with filled in missing values for moved
-    validyrs <- (data[, 'year'] >= 1985)
+    data <- rename(data, c("urbanruralcode"= "urban.rural.code"))
+    validyrs <- (data[, 'year'] >= 1984)
     urban <- (data[, 'urban.rural.code'] %in% seq(1,5))
     data[validyrs & urban, 'urban.rural.code'] <- "Urban"
     data[validyrs & !urban, 'urban.rural.code'] <- "Rural"
-    fill1984 <- function(group) {
-        if((1984 %in% group$year) & (group[group$year == 1985, 'moved'] == 0)) {
-              group[group$year == 1984, 'urban.rural.code'] <- group[group$year == 1985, 'urban.rural.code']
-        } 
-        return(group)
-    }
-    data <- ddply(data, 'unique_pid', fill1984, .parallel=TRUE)        
+    #fill1984 <- function(group) {
+    #    if((1984 %in% group$year) & (group[group$year == 1985, 'moved'] %in% c(5,0))) {
+    #         group[group$year == 1984, 'urban.rural.code'] <- group[group$year == 1985, 'urban.rural.code']
+    #    } 
+    #   return(group)
+    #}
+    #data <- ddply(data, 'unique_pid', fill1984, .parallel=TRUE)        
     return(data)
 }
 

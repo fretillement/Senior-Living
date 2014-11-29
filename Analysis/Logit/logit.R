@@ -26,9 +26,9 @@ calcLogLikelihood <- function(betas, x=x, y=y) {
 # Computes the negative log-likelihood 
 #  
 # Args: 
-#   x: a dataframe of the predictor variables in the logit model
+#   x: a matrix of the predictor variables in the logit model
 #      NOTE: the first column MUST be a vector of 1's for the intercept!!!
-#   y: a vector of the outcome variable (e.g. living in SF, etc)
+#   y: a matrix of the outcome variable (e.g. living in SF, etc)
 #   betas: a vector of beta coefficients used in the logit model 
 #  
 # Return: 
@@ -45,8 +45,6 @@ calcLogLikelihood <- function(betas, x=x, y=y) {
     print(c(length(betas), ncol(x)))
     stop(" Categorical vector and coef vector of different lengths!")
   }
-  x <- as.matrix(x)
-  y <- as.matrix(y)
   w <- as.matrix(data$indweight)
   exprob <- exp(x %*% betas)
   prob <- exprob / (1 + exprob)

@@ -33,7 +33,7 @@ data <- read.csv(dird)
 min.age <- 55
 data <- data[((data$age >= min.age)), ]
 
-#Housekeeping: clean up moved, urban variable
+#Clean up moved, urban variable
 data <- fillInUrban(data)
 data <- fillInMoved(data)
 data <- fillInRace(data)
@@ -44,37 +44,42 @@ edges <- seq(min.age, 110, 5)
 data <- getAgeBucket(data, edges)
 agebucketdum <- data.frame(dummy(data$agebucket))
 agebucketdum <- setNames(agebucketdum, paste("agebucket.", edges, sep=""))
-transfromdum <- data.frame(dummy(data$Trans_from))
+transfromdum <- data.frame(dummy(data$trans_from))
 movedum <- data.frame(dummy(data$moved))
 urbandum <- data.frame(dummy(data$urban.rural.code))
+urbandum <- urbandum[, c("urban.rural.code.Rural", 'urban.rural.code.Urban')]
 racedum <- data.frame(dummy(data$race2))
 data <- cbind(data, agebucketdum, transfromdum, movedum, urbandum, racedum)
 
+
 # Dependent variable: to_senior
-transtodum <- data.frame(dummy(data$Trans_to))
+transtodum <- data.frame(dummy(data$trans_to))
 data <- cbind(data, transtodum)
+### Save the data ### 
+write.csv(data, "M:/senior living/data/Psid data/complete_st-logit.csv", row.names=FALSE)
+
 
 # Set up formula, x and y matrices for logistic regressions
-f1 <- Trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.75 +
+f1 <- trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.75 +
                         agebucket.80 + agebucket.85 + agebucket.90 + agebucket.95 + 
                         agebucket.100 + agebucket.105 +
-                        Trans_from.SF + Trans_from.Shared + 
+                        trans_from.SF + trans_from.Shared + 
                         urban.rural.code.Urban + 
                         race2.Black + race2.White 
 
-f2 <- Trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.75 +
+f2 <- trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.75 +
                         agebucket.80 + agebucket.85 + agebucket.90 + agebucket.95 + 
                         agebucket.100 + agebucket.105 +
-                        Trans_from.SF + Trans_from.Shared + 
+                        trans_from.SF + trans_from.Shared + 
                         urban.rural.code.Urban + 
                         race2.Black + race2.White + 
                         impwealth
 
 
-xvars <- c(paste("agebucket.", seq(60, 105, 5), sep=""), "Trans_from.SF", "Trans_from.Shared", 
+xvars <- c(paste("agebucket.", seq(60, 105, 5), sep=""), "trans_from.SF", "trans_from.Shared", 
            "urban.rural.code.Urban", "race2.Black", "race2.White")
-yvar <- "Trans_to.Senior"  
-intercept <- rep(1, nrow(data))
+yvar <- "trans_to.Senior"  
+intercept <- data.frame(rep(1, nrow(data)))
 
 x <- cbind(intercept, data[ , xvars])
 y <- data[ , yvar]
@@ -86,7 +91,7 @@ y <- as.matrix(y)
 
 #### Run an UNWEIGHTED logit with only years with wealth and urban obs. 
 # Keep only observations for years with wealth vars
-data <- data[data$year %in% c(seq(1984, 1994, 5), seq(1999, 2011, 2))]
+data <- data[data$year %in% c(seq(1984, 1994, 5), seq(1999, 2011, 2)), ]
 
 # Keep only observations for urban.rural.code values != 0 
 data <- data[data$urban.rural.code != 0, ]
@@ -94,7 +99,6 @@ data <- data[data$urban.rural.code != 0, ]
 # with glm 
 
 # with optim only 
-
 
 
 #### Run an UNWEIGHTED logit with glm()
