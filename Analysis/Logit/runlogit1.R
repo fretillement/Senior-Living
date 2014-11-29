@@ -6,58 +6,34 @@ require(plyr)
 This script runs a logit model on PSID data. See getComplete.py for more information
 on the PSID dataset 
 
-The model is as follows: 
-
-Standard error and beta values are 
-
+The model coefficients, standard errors, z-score and p-values are all saved to csv
 
 Dependencies: 
-    logit.R: file with all functions required to implement a logit with optim() 
-    housekeeping.R: contains functions required to clean up PSID before running logit
+    logit.R: file with all functions required to implement a logit with optim() and get standard errors  
+    housekeeping.R: contains functions required to clean up PSID file (complete_st.csv) before running logit
 "
 
 # Specify directories
-dirh <- "M:/senior living/code/senior-living/analysis/logit/housekeeping.R"
-dirl <- "M:/senior living/code/senior-living/analysis/logit/logit.R"
-diro <- "M:/senior living/code/senior-living/analysis/logit/test.csv"
-dird <- "M:/senior living/data/Psid data/complete_st.csv"
+#dirh <- "M:/senior living/code/senior-living/analysis/logit/housekeeping.R"
+dirh <- "/Users/shruthivenkatesh/documents/senior living/senior-living/analysis/logit/housekeeping.R"
+#dirl <- "M:/senior living/code/senior-living/analysis/logit/logit.R"
+dirl <- "/Users/shruthivenkatesh/documents/senior living/senior-living/analysis/logit/logit.R"
+#diro <- "M:/senior living/code/senior-living/analysis/logit/test.csv"
+diro <- "/Users/shruthivenkateshdocuments/senior living/senior-living/analysis/logit/test.csv"
+#dird <- "M:/senior living/data/Psid data/complete_st-logit.csv"
+dird <- "/Users/shruthivenkatesh/documents/senior living/complete_st-logit.csv"
 
-# Source housekeeping and logit functions
-source(dirh)
-source(dirl)
+# Optional: source housekeeping.R; clean up and recode data if needed 
+#source(dirh)
 
-# Read in data
+# Read in the data
 data <- read.csv(dird)
 
-# Keep ONLY observations for ages >= min.age
-min.age <- 55
-data <- data[((data$age >= min.age)), ]
+# Get logit functions
+source(dirl)
 
-#Clean up moved, urban variable
-data <- fillInUrban(data)
-data <- fillInMoved(data)
-data <- fillInRace(data)
-
-# Generate dummies from independent variables: 
-# agebucket, Trans_from, urban status, moved, race 
-edges <- seq(min.age, 110, 5)
-data <- getAgeBucket(data, edges)
-agebucketdum <- data.frame(dummy(data$agebucket))
-agebucketdum <- setNames(agebucketdum, paste("agebucket.", edges, sep=""))
-transfromdum <- data.frame(dummy(data$trans_from))
-movedum <- data.frame(dummy(data$moved))
-urbandum <- data.frame(dummy(data$urban.rural.code))
-urbandum <- urbandum[, c("urban.rural.code.Rural", 'urban.rural.code.Urban')]
-racedum <- data.frame(dummy(data$race2))
-data <- cbind(data, agebucketdum, transfromdum, movedum, urbandum, racedum)
-
-
-# Dependent variable: to_senior
-transtodum <- data.frame(dummy(data$trans_to))
-data <- cbind(data, transtodum)
-### Save the data ### 
-write.csv(data, "M:/senior living/data/Psid data/complete_st-logit.csv", row.names=FALSE)
-
+# Keep only observations for years with wealth vars with glm()
+data <- data[data$year %in% c(seq(1984, 1994, 5), seq(1999, 2011, 2)), ]
 
 # Set up formula, x and y matrices for logistic regressions
 f1 <- trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.75 +
@@ -77,30 +53,35 @@ f2 <- trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.7
 
 
 xvars <- c(paste("agebucket.", seq(60, 105, 5), sep=""), "trans_from.SF", "trans_from.Shared", 
-           "urban.rural.code.Urban", "race2.Black", "race2.White")
+           "urban.rural.code.Urban", "race2.Black", "race2.White", "impwealth")
 yvar <- "trans_to.Senior"  
 intercept <- data.frame(rep(1, nrow(data)))
 
 x <- cbind(intercept, data[ , xvars])
 y <- data[ , yvar]
-betas <- c(-7, rep(1, length(xvars)))
-
 x <- as.matrix(x)
 y <- as.matrix(y)
 
 
-#### Run an UNWEIGHTED logit with only years with wealth and urban obs. 
-# Keep only observations for years with wealth vars
-data <- data[data$year %in% c(seq(1984, 1994, 5), seq(1999, 2011, 2)), ]
+#### Run logit f2 with only years with wealth and urban obs. 
+modelf2 <- glm(f2, family=binomial(link = "logit"), data=data)
+modelf2lm <- lm(f2, data=data)
+betas <- array(modelf2$coefficients)
 
-# Keep only observations for urban.rural.code values != 0 
-data <- data[data$urban.rural.code != 0, ]
+# with optim - unweighted
+ufitf2 <- optim(betas, calcLogLikelihood, gr=logit.gr, x=x, y=y, method="BFGS", control=list(trace=TRUE, REPORT=1), hessian=TRUE)
+ufitf2.res <- logit.summary(ufitf2)
 
-# with glm 
+# with optim - weighted
+wfitf2 <- optim(betas, calcLogLikelihood, gr=logit.gr, x=x, y=y, method="BFGS", control=list(trace=TRUE, REPORT=1), hessian=TRUE)
+wfitf2.res <- logit.summary(wfitf2)
 
-# with optim only 
+#### Run logit f3 with only years with wealth and urban obs (interaction)
 
 
+
+
+"
 #### Run an UNWEIGHTED logit with glm()
 modelf1 <- glm(f1, family=binomial(link = "logit"), data=data)
 
@@ -128,5 +109,4 @@ pvalue <- 2*(1 - pnorm(abs(zscore)))
 results <- cbind(coeffs, stderr, zscore, pvalue)
 colnames(results) <- c("Coeff.", "Std. Err.", "z", "p value")
 print(results)  
-
-
+"

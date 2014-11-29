@@ -27,7 +27,7 @@ calcLogLikelihood <- function(betas, x=x, y=y) {
 #  
 # Args: 
 #   x: a matrix of the predictor variables in the logit model
-#      NOTE: the first column MUST be a vector of 1's for the intercept!!!
+#      NOTE: the first column of x MUST be a vector of the same number for the intercept!!!
 #   y: a matrix of the outcome variable (e.g. living in SF, etc)
 #   betas: a vector of beta coefficients used in the logit model 
 #  
@@ -56,8 +56,13 @@ calcLogLikelihood <- function(betas, x=x, y=y) {
   y0t <- t(y0)
   yt <- t(y)
   wt <- t(w)
-   
+
+  # Formula for unweighted logit
+  #llf <- -sum(yt %*% logprob + y0t %*% exprob0)
+  
+  # Formula for weighted logit
   llf <- -sum((wt * yt) %*% logprob + (wt * y0t) %*% exprob0)
+ 
   # Unpack betas  
   #num.betas <- length(betas)
   #for(i in seq(1, length(betas))) {
@@ -84,7 +89,7 @@ minLogLikelihood <- function(betas, x, y) {
 }
 
 logit.gr <- function(betas, x, y) {
-# Calculates the logit gradient (used to calculate standard errors)  
+# Calculates the logit gradient (used to get standard errors)  
 #
 # Args: 
 #    betas: 
@@ -100,3 +105,26 @@ logit.gr <- function(betas, x, y) {
     return(-gradient)
 }
 
+logit.summary <- function(model) { 
+# Calculates standard errors, z-stat, p-value for given a list of optim() results
+#
+# Args: 
+#    model: the result of a call to optim() with a logit model. See runlogit1.R for more info. 
+# 
+# Returns: 
+#    results: a table of coefficients, standard error, z-score and pvalue for the model
+#
+# Error testing: make sure that the model actually converged before getting results!!   
+    if(model$convergence != 0) {
+        stop("This model didn't converge.")  
+    }
+    coeffs <- model$par
+    covmat <- solve(model$hessian)
+    stderr <- sqrt(diag(covmat))
+    zscore <- coeffs/stderr
+    pvalue <- 2 * (1 - pnorm(abs(zscore)))
+    results <- cbind(coeffs, stderr, zscore, pvalue)
+    colnames(results) <- c("Coeff.", "Std. Err.", "z", "p value")
+    #print(results)
+    return(results)
+}

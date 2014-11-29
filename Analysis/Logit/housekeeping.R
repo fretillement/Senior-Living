@@ -4,8 +4,15 @@ require(plyr)
 # 
 # For more information on the PSID data, see getComplete.py
 #    
-# For more information on the logistic regression implementation, see logit.R
+# For more information on the logistic regression implementation, see logit.R and runlogit1.R
 #
+
+# Set data and output directories
+dird <- "M:/senior living/data/Psid data/complete_st.csv"
+diro <- "M:/senior living/data/Psid data/complete_st-logit.csv"
+  
+# Read in data
+data <- read.csv(dird)
 
 getAgeBucket <- function(data, edges=seq(0,110,5)) { 
   # Generates a age bucket var with boundaries at edges with age2
@@ -104,3 +111,36 @@ fillInRace <- function(data) {
     data[black, 'race2'] <- "Black"
     return(data)
 }
+
+#####################################
+## Implement houskeeping functions ##
+#####################################
+# Keep ONLY observations for ages >= min.age
+min.age <- 55
+data <- data[((data$age >= min.age)), ]
+
+#Clean up urban.rural.code, moved, and race variables
+data <- fillInUrban(data)
+data <- fillInMoved(data)
+data <- fillInRace(data)
+
+# Generate dummies from independent variables: 
+# agebucket, Trans_from, urban status, moved, race 
+edges <- seq(min.age, 110, 5)
+data <- getAgeBucket(data, edges)
+agebucketdum <- data.frame(dummy(data$agebucket))
+agebucketdum <- setNames(agebucketdum, paste("agebucket.", edges, sep=""))
+transfromdum <- data.frame(dummy(data$trans_from))
+movedum <- data.frame(dummy(data$moved))
+urbandum <- data.frame(dummy(data$urban.rural.code))
+urbandum <- urbandum[, c("urban.rural.code.Rural", 'urban.rural.code.Urban')]
+racedum <- data.frame(dummy(data$race2))
+data <- cbind(data, agebucketdum, transfromdum, movedum, urbandum, racedum)
+
+# Dependent variable: to_senior
+transtodum <- data.frame(dummy(data$trans_to))
+data <- cbind(data, transtodum)
+
+### Save the data ### 
+write.csv(data, diro, row.names=FALSE)
+
