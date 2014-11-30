@@ -14,14 +14,14 @@ Dependencies:
 "
 
 # Specify directories
-#dirh <- "M:/senior living/code/senior-living/analysis/logit/housekeeping.R"
-dirh <- "/Users/shruthivenkatesh/documents/senior living/senior-living/analysis/logit/housekeeping.R"
-#dirl <- "M:/senior living/code/senior-living/analysis/logit/logit.R"
-dirl <- "/Users/shruthivenkatesh/documents/senior living/senior-living/analysis/logit/logit.R"
-#diro <- "M:/senior living/code/senior-living/analysis/logit/test.csv"
-diro <- "/Users/shruthivenkateshdocuments/senior living/senior-living/analysis/logit/test.csv"
-#dird <- "M:/senior living/data/Psid data/complete_st-logit.csv"
-dird <- "/Users/shruthivenkatesh/documents/senior living/complete_st-logit.csv"
+dirh <- "M:/senior living/code/senior-living/analysis/logit/housekeeping.R"
+#dirh <- "/Users/shruthivenkatesh/documents/senior living/senior-living/analysis/logit/housekeeping.R"
+dirl <- "M:/senior living/code/senior-living/analysis/logit/logit.R"
+#dirl <- "/Users/shruthivenkatesh/documents/senior living/senior-living/analysis/logit/logit.R"
+diro <- "M:/senior living/code/senior-living/analysis/logit/test.csv"
+#diro <- "/Users/shruthivenkateshdocuments/senior living/senior-living/analysis/logit/test.csv"
+dird <- "M:/senior living/data/Psid data/complete_st-logit.csv"
+#dird <- "/Users/shruthivenkatesh/documents/senior living/complete_st-logit.csv"
 
 # Optional: source housekeeping.R; clean up and recode data if needed 
 #source(dirh)
@@ -50,6 +50,8 @@ f2 <- trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.7
                         urban.rural.code.Urban + 
                         race2.Black + race2.White + 
                         impwealth
+
+f3 
 
 
 xvars <- c(paste("agebucket.", seq(60, 105, 5), sep=""), "trans_from.SF", "trans_from.Shared", 

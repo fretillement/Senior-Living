@@ -51,6 +51,8 @@ def renameGender(df):
 	print "Renaming gender"
 	df_gr = df.groupby('unique_pid')
 	def recodeGender(group):
+		valid = df.loc[(df['gender'] > 0)]
+
 		#print group['unique_pid'].iloc[0] 
 		if len(~group.loc[(group['gender'] >0), 'gender'].index)>0: gender = group.loc[(group['gender'] >0), 'gender'].iloc[0]
 		else: gender = 0
@@ -181,3 +183,6 @@ for dem in demo:
 
 # Get median and mean wealth by year 
 #getIncomeStats(df, 'impwealth')
+
+# Fill in gender variable
+df = pd.read_csv("M:/senior living/data/psid data/complete_st.csv")

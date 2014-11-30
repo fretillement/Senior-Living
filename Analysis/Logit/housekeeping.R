@@ -117,7 +117,7 @@ fillInRace <- function(data) {
 #####################################
 # Keep ONLY observations for ages >= min.age
 min.age <- 55
-data <- data[((data$age >= min.age)), ]
+data <- data[((data$age2 >= min.age)), ]
 
 #Clean up urban.rural.code, moved, and race variables
 data <- fillInUrban(data)
@@ -125,7 +125,7 @@ data <- fillInMoved(data)
 data <- fillInRace(data)
 
 # Generate dummies from independent variables: 
-# agebucket, Trans_from, urban status, moved, race 
+# agebucket, Trans_from, urban status, moved, race, housing category
 edges <- seq(min.age, 110, 5)
 data <- getAgeBucket(data, edges)
 agebucketdum <- data.frame(dummy(data$agebucket))
@@ -135,7 +135,9 @@ movedum <- data.frame(dummy(data$moved))
 urbandum <- data.frame(dummy(data$urban.rural.code))
 urbandum <- urbandum[, c("urban.rural.code.Rural", 'urban.rural.code.Urban')]
 racedum <- data.frame(dummy(data$race2))
-data <- cbind(data, agebucketdum, transfromdum, movedum, urbandum, racedum)
+hcatdum <- data.frame(dummy(data$housingcategory))
+
+data <- cbind(data, agebucketdum, transfromdum, movedum, urbandum, racedum, hcatdum)
 
 # Dependent variable: to_senior
 transtodum <- data.frame(dummy(data$trans_to))

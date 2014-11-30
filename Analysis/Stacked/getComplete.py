@@ -108,9 +108,3 @@ df.to_csv('complete_st', index=False)
 print "Writing"
 complete.to_csv(fpath_output, index=False)
 
-# Optional: Stata commands to fill in missing urban.rural.code values
-#insheet using "M:/senior living/data/Psid data/complete_st.csv"
-#by unique_pid, sort: gen urbancode85 = urbanruralcode if (moved != 1) & (year == 1985)
-#by unique_pid, sort: gen famcount = _n
-#by unique_pid, sort: replace urbanruralcode = urbancode85[famcount+1] if (year == 1984) & (urbancode > 0)
-#outsheet using "M:/senior living/data/Psid data/complete_st.csv", comma replace
