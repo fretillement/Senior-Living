@@ -44,7 +44,8 @@ tosrhousingShare <- function(df) {
 # Change all values of variable moved to 0 or 1 
     data[!(df$moved %in% c(0,1)), 'moved'] <- 0
     totmoves = sum(df$moved * df$indweight)  
-    inplace.to.sr <- sum(df[(df$trans_to == "Senior") & (df$trans_from %in% c('SF', 'Shared')), 'indweight'])
+    #inplace.to.sr <- sum(df[(df$trans_to == "Senior") & (df$trans_from %in% c('SF', 'Shared')), 'indweight'])
+    inplace.to.sr <- sum(df[(df$trans_to %in% c("SF", "Shared")) & (df$trans_from %in% c('SF', 'Shared', 'MF','Senior')), 'indweight'])    
     output <- inplace.to.sr/totmoves
     return(output)  
 }
@@ -87,7 +88,7 @@ period2 <- rename(ddply(period2df, 'agebucket', tosrhousingShare, .parallel=TRUE
 period3 <- rename(ddply(period3df, 'agebucket', tosrhousingShare, .parallel=TRUE), c("V1"="1996-2011"))
 
 complete <- join_all(list(total, period1, period2, period3))
-write.csv(complete, "M:/test.csv", row.names=FALSE)
+write.csv(complete, "M:/test2.csv", row.names=FALSE)
 
 # Get crosstabs of to/from moving categories by 5-year age buckets
 # Write each crosstab to same csv file

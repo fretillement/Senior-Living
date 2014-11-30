@@ -51,7 +51,7 @@ f2 <- trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.7
                         race2.Black + race2.White + 
                         impwealth
 
-f3 
+
 
 
 xvars <- c(paste("agebucket.", seq(60, 105, 5), sep=""), "trans_from.SF", "trans_from.Shared", 
