@@ -125,7 +125,8 @@ data <- fillInMoved(data)
 data <- fillInRace(data)
 
 # Generate dummies from independent variables: 
-# agebucket, Trans_from, urban status, moved, race, housing category
+# agebucket, Trans_from, urban status, moved, race, housing category, marital status, 
+# period indicator (1984-1995 and 1996-2011)
 edges <- seq(min.age, 110, 5)
 data <- getAgeBucket(data, edges)
 agebucketdum <- data.frame(dummy(data$agebucket))
@@ -136,8 +137,12 @@ urbandum <- data.frame(dummy(data$urban.rural.code))
 urbandum <- urbandum[, c("urban.rural.code.Rural", 'urban.rural.code.Urban')]
 racedum <- data.frame(dummy(data$race2))
 hcatdum <- data.frame(dummy(data$housingcategory))
-
-data <- cbind(data, agebucketdum, transfromdum, movedum, urbandum, racedum, hcatdum)
+mardum <- data.frame(dummy(data$mar))
+data$period <- as.numeric(data$year %in% seq(1984, 2001))
+perioddum <- data.frame(dummy(data$period))
+colnames(perioddum) <- c("period.2001-2011", "period.1984-2001")
+data <- cbind(data, agebucketdum, transfromdum, movedum, urbandum, racedum, hcatdum,
+              mardum, perioddum)
 
 # Dependent variable: to_senior
 transtodum <- data.frame(dummy(data$trans_to))

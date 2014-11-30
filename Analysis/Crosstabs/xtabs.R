@@ -1,7 +1,7 @@
 require(plyr)
 require(dummies)
 require(stats4)
-
+require(reshape)
 
 
 # This script generates xtabs for the moves-to and moves-from variables
@@ -45,8 +45,9 @@ tosrhousingShare <- function(df) {
     data[!(df$moved %in% c(0,1)), 'moved'] <- 0
     totmoves = sum(df$moved * df$indweight)  
     #inplace.to.sr <- sum(df[(df$trans_to == "Senior") & (df$trans_from %in% c('SF', 'Shared')), 'indweight'])
-    inplace.to.sr <- sum(df[(df$trans_to %in% c("SF", "Shared")) & (df$trans_from %in% c('SF', 'Shared', 'MF','Senior')), 'indweight'])    
-    output <- inplace.to.sr/totmoves
+    inplace.to.sfsh <- sum(df[(df$trans_to %in% c("SF", "Shared")) & (df$trans_from %in% c('SF', 'Shared', 'MF','Senior')), 'indweight'])    
+    #output <- inplace.to.sr/totmoves
+    output <- inplace.to.sfsh / totmoves
     return(output)  
 }
 
@@ -66,11 +67,13 @@ dir <- "M:/senior living/code/senior-living/analysis/logit/housekeeping.R"
 source(dir)
 
 # Read in the data
+datadir <- "/users/shruthivenkatesh/documents/senior living/complete_st-logit.csv"
 #datadir <- "M:/senior living/data/psid data/complete_st.csv"
 #data <- read.csv(datadir)
 
 # Generate agebucket variable
 edges <- seq(55, 100, 5)
+data <- data[data$age2 >= 55, ]
 data <- getAgeBucket(data, edges)
 
 # Clean up moved variable: values 5, 8, 9 coded to "No move" 

@@ -14,14 +14,14 @@ Dependencies:
 "
 
 # Specify directories
-dirh <- "M:/senior living/code/senior-living/analysis/logit/housekeeping.R"
-#dirh <- "/Users/shruthivenkatesh/documents/senior living/senior-living/analysis/logit/housekeeping.R"
-dirl <- "M:/senior living/code/senior-living/analysis/logit/logit.R"
-#dirl <- "/Users/shruthivenkatesh/documents/senior living/senior-living/analysis/logit/logit.R"
-diro <- "M:/senior living/code/senior-living/analysis/logit/test.csv"
-#diro <- "/Users/shruthivenkateshdocuments/senior living/senior-living/analysis/logit/test.csv"
-dird <- "M:/senior living/data/Psid data/complete_st-logit.csv"
-#dird <- "/Users/shruthivenkatesh/documents/senior living/complete_st-logit.csv"
+#dirh <- "M:/senior living/code/senior-living/analysis/logit/housekeeping.R"
+dirh <- "/Users/shruthivenkatesh/documents/senior living/senior-living/analysis/logit/housekeeping.R"
+#dirl <- "M:/senior living/code/senior-living/analysis/logit/logit.R"
+dirl <- "/Users/shruthivenkatesh/documents/senior living/senior-living/analysis/logit/logit.R"
+#diro <- "M:/senior living/code/senior-living/analysis/logit/test.csv"
+diro <- "/Users/shruthivenkateshdocuments/senior living/senior-living/analysis/logit/test.csv"
+#dird <- "M:/senior living/data/Psid data/complete_st-logit.csv"
+dird <- "/Users/shruthivenkatesh/documents/senior living/complete_st-logit.csv"
 
 # Optional: source housekeeping.R; clean up and recode data if needed 
 #source(dirh)
@@ -41,19 +41,28 @@ f1 <- trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.7
                         agebucket.100 + agebucket.105 +
                         trans_from.SF + trans_from.Shared + 
                         urban.rural.code.Urban + 
-                        race2.Black + race2.White 
+                        race2.Black + race2.White +
+                        mar.Married
 
 f2 <- trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.75 +
                         agebucket.80 + agebucket.85 + agebucket.90 + agebucket.95 + 
                         agebucket.100 + agebucket.105 +
-                        trans_from.SF + trans_from.Shared + 
                         urban.rural.code.Urban + 
-                        race2.Black + race2.White + 
-                        impwealth
+                        race2.Black + race2.White +                         
+                        mar.Married +
+                        impwealth +
+                        trans_from.SF + trans_from.Shared                        
 
-
-
-
+f3.int <- trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket.75 +
+                        agebucket.80 + agebucket.85 + agebucket.90 + agebucket.95 + 
+                        agebucket.100 + agebucket.105 +
+                        urban.rural.code.Urban + 
+                        race2.Black + race2.White +
+                        mar.Married + 
+                        impwealth +
+                        trans_from.SF : period1 + trans_from.Shared : period1 +
+                        trans_from.SF : period2 + trans_from.Shared : period2
+  
 xvars <- c(paste("agebucket.", seq(60, 105, 5), sep=""), "trans_from.SF", "trans_from.Shared", 
            "urban.rural.code.Urban", "race2.Black", "race2.White", "impwealth")
 yvar <- "trans_to.Senior"  
@@ -79,7 +88,7 @@ wfitf2 <- optim(betas, calcLogLikelihood, gr=logit.gr, x=x, y=y, method="BFGS", 
 wfitf2.res <- logit.summary(wfitf2)
 
 #### Run logit f3 with only years with wealth and urban obs (interaction)
-
+modelf3.int <- glm(f3.int, family=binomial(link = "logit"), data=data)
 
 
 

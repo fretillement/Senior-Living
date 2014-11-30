@@ -20,6 +20,7 @@ dird.complete <- "M:/senior living/data/psid data/complete_st.csv"
 dirh <-  "M:/senior living/code/senior-living/analysis/logit/housekeeping.R"
 dir.xtabs <- "M:/senior living/code/senior-living/analysis/Crosstabs/xtabs.R"
 dir.xtabsdata <- "M:/senior living/data/psid data/tosr_share.csv"
+dir.xtabsdata2 <- "/users/shruthivenkatesh/documents/senior living/senior-living/"
 # Optional: Clean up if necessary
 #source(dirh)
 
@@ -52,7 +53,7 @@ select.lab <- c("Age",
                 "1 if respondent has moved from a senior living facility in the past year",
                 "1 if respondent has moved from a multifamily unit in the past year",
                 "1 if respondent has moved from a single family home in the past year",
-                "1 if respondent has moved from a shared home with other family in the past year",              
+                "1 if respondent has moved from a shared home with other family in the past year",
                 "1 if respondent resides in a senior living facility", 
                 "1 if respondent resides in a multifamily housing unit",
                 "1 if respondent resides in a single family home", 
@@ -103,6 +104,22 @@ p1 <- p1 + scale_color_discrete("Time Period") + theme_bw(base_size = 14, base_f
 p1 <- p1 + theme(axis.text.y = element_text(size=12))
 ggsave(filename="M:/chart1.pdf", plot=p1)
 
+##############################################################
+## Chart 2: decr. in moves to sf/shared between periods 1-3 ##
+##############################################################
 
+xtabs.tosh <- read.csv("/users/shruthivenkatesh/documents/senior living/toSFshared.csv")
+xtabs.tosh <- xtabs.tosh[(rowSums(is.na(xtabs.tosh)) == 0), ] 
+xtabs.tosh <- xtabs.tosh[!(xtabs.tosh$agebucket %in% c("(85,90]", "(95,100]", "(90,95]")), ]
+xtabs.tosh <- rename(xtabs.tosh, c("X1968.2011"="1968-2011", "X1968.1984"="1968-1984", "X1985.1995"="1985-1995", "X1996.2011"="1996-2011"))
+
+m2 <- melt(xtabs.tosh, idvars=c("agebucket"), variable.name="time.period", value.name="toSL.share")
+p2 <- ggplot(m2, aes(x=agebucket, y=value, col=variable, group=variable, line=20)) + geom_line(size=1.5)
+p2 <- p2 + labs(x="Age group",
+                y="Moves to shared or single family housing as share of total moves",
+                title="Moves to Shared of Single Family Homes as a Fraction of Total Transitions") 
+p2 <- p2 + scale_color_discrete("Time Period") + theme_bw(base_size = 14, base_family="Helvetica")
+p2 <- p2 + theme(axis.text.y = element_text(size=12))
+ggsave(filename="/users/shruthivenkatesh/documents/senior living/paper1/chart2.pdf", plot=p2)
 
 
