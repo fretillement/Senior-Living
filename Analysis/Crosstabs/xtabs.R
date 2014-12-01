@@ -59,7 +59,7 @@ crosstabToFrom <- function(df) {
 #
 # Returns: 
 #    cross: a table with number of moves in each "to-from" pair (weight=indweight)
-    cross <- xtabs(indweight ~ Trans_to + Trans_from, data=df)
+     cross <- xtabs(indweight ~ trans_to + trans_from, data=df)
 }
 
 # Source housekeeping functions
