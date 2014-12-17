@@ -1,4 +1,5 @@
 require(plyr)
+require(dummies)
 
 # This script contains functions to prep PSID data for a logistic regression
 # 
@@ -11,8 +12,6 @@ require(plyr)
 dird <- "M:/senior living/data/Psid data/complete_st.csv"
 diro <- "M:/senior living/data/Psid data/complete_st-logit.csv"
   
-# Read in data
-data <- read.csv(dird)
 
 getAgeBucket <- function(data, edges=seq(0,110,5)) { 
   # Generates a age bucket var with boundaries at edges with age2
@@ -106,7 +105,7 @@ fillInRace <- function(data) {
     white <- ((data$race == "White"))
     black <- ((data$race == "Black or African-American"))
     other <- !white & !black
-    data[other, 'race2'] <- "Neither"
+    data[other, 'race2'] <- "NeitherRace"
     data[white, 'race2'] <- "White"
     data[black, 'race2'] <- "Black"
     return(data)
@@ -115,39 +114,43 @@ fillInRace <- function(data) {
 #####################################
 ## Implement houskeeping functions ##
 #####################################
-# Keep ONLY observations for ages >= min.age
-min.age <- 55
-data <- data[((data$age2 >= min.age)), ]
-
-#Clean up urban.rural.code, moved, and race variables
-data <- fillInUrban(data)
-data <- fillInMoved(data)
-data <- fillInRace(data)
-
-# Generate dummies from independent variables: 
-# agebucket, Trans_from, urban status, moved, race, housing category, marital status, 
-# period indicator (1984-1995 and 1996-2011)
-edges <- seq(min.age, 110, 5)
-data <- getAgeBucket(data, edges)
-agebucketdum <- data.frame(dummy(data$agebucket))
-agebucketdum <- setNames(agebucketdum, paste("agebucket.", edges, sep=""))
-transfromdum <- data.frame(dummy(data$trans_from))
-movedum <- data.frame(dummy(data$moved))
-urbandum <- data.frame(dummy(data$urban.rural.code))
-urbandum <- urbandum[, c("urban.rural.code.Rural", 'urban.rural.code.Urban')]
-racedum <- data.frame(dummy(data$race2))
-hcatdum <- data.frame(dummy(data$housingcategory))
-mardum <- data.frame(dummy(data$mar))
-data$period <- as.numeric(data$year %in% seq(1984, 2001))
-perioddum <- data.frame(dummy(data$period))
-colnames(perioddum) <- c("period.2001-2011", "period.1984-2001")
-data <- cbind(data, agebucketdum, transfromdum, movedum, urbandum, racedum, hcatdum,
-              mardum, perioddum)
-
-# Dependent variable: to_senior
-transtodum <- data.frame(dummy(data$trans_to))
-data <- cbind(data, transtodum)
-
-### Save the data ### 
-write.csv(data, diro, row.names=FALSE)
-
+if(interactive()) {
+    # Read in data
+    data <- read.csv(dird)
+    
+    # Keep ONLY observations for ages >= min.age
+    min.age <- 55
+    data <- data[((data$age2 >= min.age)), ]
+  
+    #Clean up urban.rural.code, moved, and race variables
+    data <- fillInUrban(data)
+    data <- fillInMoved(data)
+    data <- fillInRace(data)
+    
+    # Generate dummies from independent variables: 
+    # agebucket, Trans_from, urban status, moved, race, housing category, marital status, 
+    # period indicator (1984-1995 and 1996-2011)
+    edges <- seq(min.age, 110, 5)
+    data <- getAgeBucket(data, edges)
+    agebucketdum <- data.frame(dummy(data$agebucket))
+    agebucketdum <- setNames(agebucketdum, paste("agebucket.", edges, sep=""))
+    transfromdum <- data.frame(dummy(data$Trans_from))
+    movedum <- data.frame(dummy(data$moved))
+    urbandum <- data.frame(dummy(data$urban.rural.code))
+    urbandum <- urbandum[, c("urban.rural.code.Rural", 'urban.rural.code.Urban')]
+    racedum <- data.frame(dummy(data$race2))
+    hcatdum <- data.frame(dummy(data$Housing.Category))
+    mardum <- data.frame(dummy(data$mar))
+    data$period <- as.numeric(data$year %in% seq(1984, 2001))
+    perioddum <- data.frame(dummy(data$period))
+    colnames(perioddum) <- c("period.2001-2011", "period.1984-2001")
+    data <- cbind(data, agebucketdum, transfromdum, movedum, urbandum, racedum, hcatdum,
+                  mardum, perioddum)
+    
+    # Dependent variable: to_senior
+    transtodum <- data.frame(dummy(data$Trans_to))
+    data <- cbind(data, transtodum)
+    
+    ### Save the data ### 
+    #write.csv(data, diro, row.names=FALSE)
+}

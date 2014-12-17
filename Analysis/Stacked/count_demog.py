@@ -50,14 +50,17 @@ def renameMarital(df):
 def renameGender(df): 
 	print "Renaming gender"
 	df_gr = df.groupby('unique_pid')
-	def recodeGender(group):
-		valid = df.loc[(df['gender'] > 0)]
-
+	def recodeGender(group):		
+		#gender = group.loc[group['gender'] > 0, 'gender'].iloc[0]
+	 	#gr = group.sort('gender')
+	 	#gender = gr['gen.head(1).iloc[0] 
+		#valid = df.loc[(df['gender'] > 0)]
 		#print group['unique_pid'].iloc[0] 
 		if len(~group.loc[(group['gender'] >0), 'gender'].index)>0: gender = group.loc[(group['gender'] >0), 'gender'].iloc[0]
 		else: gender = 0
 		if gender == 1: group.loc[:, 'gender'] = 'Male' 
 		if gender == 2: group.loc[:, 'gender'] = 'Female'
+		if gender == 9: group.loc[:, 'gender'] = 'Unknown'
 		return group
 	output = df_gr.apply(recodeGender)
 	return output

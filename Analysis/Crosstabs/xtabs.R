@@ -51,23 +51,15 @@ tosrhousingShare <- function(df) {
     return(output)  
 }
 
-crosstabToFrom <- function(df) {
-# For a given age bucket, generate a weighted cross tab of transition to and from categories  
-#  
-# Args: 
-#    df: a PSID dataframe with agebucket variable
-#
-# Returns: 
-#    cross: a table with number of moves in each "to-from" pair (weight=indweight)
-     cross <- xtabs(indweight ~ trans_to + trans_from, data=df)
-}
 
-# Source housekeeping functions
-dir <- "M:/senior living/code/senior-living/analysis/logit/housekeeping.R"
+
+
+"# Source housekeeping functions
+dir <- M:/senior living/code/senior-living/analysis/logit/housekeeping.R"
 source(dir)
 
 # Read in the data
-datadir <- "/users/shruthivenkatesh/documents/senior living/complete_st-logit.csv"
+datadir <- /users/shruthivenkatesh/documents/senior living/complete_st-logit.csv
 #datadir <- "M:/senior living/data/psid data/complete_st.csv"
 #data <- read.csv(datadir)
 
@@ -91,14 +83,13 @@ period2 <- rename(ddply(period2df, 'agebucket', tosrhousingShare, .parallel=TRUE
 period3 <- rename(ddply(period3df, 'agebucket', tosrhousingShare, .parallel=TRUE), c("V1"="1996-2011"))
 
 complete <- join_all(list(total, period1, period2, period3))
-write.csv(complete, "M:/test2.csv", row.names=FALSE)
+#write.csv(complete, "M:/xtabs_indwtv2.csv", row.names=FALSE)
 
 # Get crosstabs of to/from moving categories by 5-year age buckets
 # Write each crosstab to same csv file
 output = "M:/Senior living/data/psid data/xtabs_indwt2.csv"
 agedf <- data.frame(agebucket=edges, inplace.to.sr=rep(0,length(edges)))
-
-
+"
 
 
 

@@ -241,6 +241,8 @@ fint <- trans_to.Senior ~ agebucket.60 + agebucket.65 + agebucket.70 + agebucket
   urban.rural.code.Urban + 
   race2.Black + race2.White +
   mar.Married + 
+  mar.Single +
+  
   impwealth +
   educ +
   trans_from.SF : period1 + trans_from.Shared : period1 +

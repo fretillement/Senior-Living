@@ -25,7 +25,7 @@ NOTE: see clean_psid.do for the stata code for cleaning raw psid data
 mostrecent = "J178730" 
 
 # Edit the output file below
-fpath_output = "M:/complete_st.csv"
+fpath_output = "M:/complete_st_test.csv"
 
 # Edit the varlist below
 varlist = ['famwt', 'famid', 'hstructure', 'htenure', 'moved', 'indweight', 'numrooms', \
@@ -56,6 +56,7 @@ def mergeBeale(df):
 	output = data_gr.apply(lookup_fn)
 	return output
 
+'''
 print "Construct simple person-year stacked df"
 complete = getStackedFrame('age', mostrecent).implement()
 for v in varlist: 
@@ -69,9 +70,12 @@ print list(complete)
 complete = mergeBeale(complete)
 complete.to_csv("M:/test.csv")
 
+
+
 # Fill in age and moved values for present individuals 
 print "Fill in age and moved values for present individuals"
 complete = pd.read_csv("M:/test.csv")
+complete = complete.loc[(complete['obstype'].isin([0,5])), :]
 if 'unique_pid' not in list(complete): complete = complete.reset_index()
 print list(complete)
 complete = complete.rename(columns={'level_1': 'year', 'Unnamed: 1': 'year'})
@@ -79,32 +83,35 @@ complete = complete.groupby('unique_pid').apply(implementFill)
 if 'unique_pid' not in list(complete): complete = complete.reset_index()
 complete.to_csv("M:/test.csv", index=True)
 
+
 # Identify transition types
 print "Identify housing transitions"
 complete = pd.read_csv("M:/test.csv")
 complete = identifyHousing(complete)
 complete = complete.implement()
 complete.to_csv("M:/test.csv", index=True)
+'''
 
 # Fill in demographic variables 
-#complete = pd.read_csv("M:/test.csv")
-complete = pd.read_csv(fpath_output)
+complete = pd.read_csv("M:/test.csv")
+#complete = pd.read_csv(fpath_output)
 complete = renameRace(complete)
 complete = renameMarital(complete)
 complete = renameGender(complete)
-complete_st.to_csv("M:/test.csv")
+complete.to_csv("M:/test.csv")
+
 
 # Create urban-rural categories
-df['urban-rural category'] = "No info"
-urban_mask = ((df['urban-rural code'].isin(range(1,6))))
-rural_mask = ((df['urban-rural code'].isin(range(6,9))))
-df.loc[urban_mask, 'urban-rural category'] = 'urban'
-df.loc[rural_mask, 'urban-rural category'] = 'rural'
-df.to_csv('complete_st', index=False)
-
+#complete = pd.read_csv("M:/test.csv")
+complete['urban-rural category'] = "No info"
+urban_mask = ((complete['urban-rural code'].isin(range(1,6))))
+rural_mask = ((complete['urban-rural code'].isin(range(6,9))))
+complete.loc[urban_mask, 'urban-rural category'] = 'urban'
+complete.loc[rural_mask, 'urban-rural category'] = 'rural'
+complete.to_csv('M:/test.csv', index=False)
 
 
 # Write to a csv file 
-print "Writing"
-complete.to_csv(fpath_output, index=False)
+#print "Writing"
+#complete.to_csv(fpath_output, index=False, list=True,)
 

@@ -5,7 +5,7 @@ import pandas as pd
 class identifyHousing: 
 	'''
 	Functions that attach transition variables to a stacked, 
-	filled-in dataframe 
+	filled-in PSID dataframe 
 	'''
 	def __init__(self, complete_df):
 		self.df = complete_df
